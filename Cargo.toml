@@ -9,3 +9,12 @@ repository = "https://github.com/LPGhatguy/aftman"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.43"
+dirs = "3.0.2"
+semver = { version = "1.0.4", features = ["serde"] }
+serde = { version = "1.0.129", features = ["derive"] }
+structopt = "0.3.22"
+toml = "0.5.8"
+
+[dev-dependencies]
+serde_json = "1.0.66"
