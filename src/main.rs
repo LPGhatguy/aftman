@@ -1,4 +1,5 @@
 mod cli;
+mod config;
 mod manifest;
 mod tool_name;
 mod tool_spec;

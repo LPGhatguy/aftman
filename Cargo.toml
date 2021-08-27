@@ -11,6 +11,7 @@ repository = "https://github.com/LPGhatguy/aftman"
 [dependencies]
 anyhow = "1.0.43"
 dirs = "3.0.2"
+fs-err = "2.6.0"
 semver = { version = "1.0.4", features = ["serde"] }
 serde = { version = "1.0.129", features = ["derive"] }
 structopt = "0.3.22"
