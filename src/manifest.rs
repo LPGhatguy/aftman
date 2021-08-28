@@ -5,12 +5,13 @@ use std::path::Path;
 use anyhow::{bail, format_err, Context};
 use serde::{Deserialize, Serialize};
 
-use crate::config::config_dir;
-use crate::tool_name::ToolName;
-use crate::tool_spec::ToolSpec;
+use crate::config::{config_dir, write_if_not_exists};
+use crate::tool_alias::ToolAlias;
+use crate::tool_id::ToolId;
 
 pub static MANIFEST_FILE_NAME: &str = "aftman.toml";
-pub static DEFAULT_GLOBAL_MANIFEST: &str = r#"
+
+static DEFAULT_GLOBAL_MANIFEST: &str = r#"
 # This file lists tools managed by Aftman, a cross-platform toolchain manager.
 # For more information, see https://github.com/LPGhatguy/aftman
 
@@ -21,10 +22,21 @@ pub static DEFAULT_GLOBAL_MANIFEST: &str = r#"
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Manifest {
-    pub tools: BTreeMap<ToolName, ToolSpec>,
+    pub tools: BTreeMap<ToolAlias, ToolId>,
 }
 
 impl Manifest {
+    /// Create an empty global Aftman manifest if there isn't one already.
+    pub fn init_global() -> anyhow::Result<()> {
+        let base_dir = config_dir()?;
+        fs_err::create_dir_all(&base_dir)?;
+
+        let manifest_path = base_dir.join(MANIFEST_FILE_NAME);
+        write_if_not_exists(&manifest_path, DEFAULT_GLOBAL_MANIFEST.trim())?;
+
+        Ok(())
+    }
+
     /// Find and load all manifests from the current directory, sorted in
     /// priority order.
     pub fn discover(mut current_dir: &Path) -> anyhow::Result<Vec<Manifest>> {

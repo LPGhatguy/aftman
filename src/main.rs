@@ -1,8 +1,12 @@
 mod cli;
 mod config;
+mod ident;
 mod manifest;
+mod tool_alias;
+mod tool_id;
 mod tool_name;
 mod tool_spec;
+mod tool_storage;
 
 use std::env;
 
@@ -10,8 +14,8 @@ use anyhow::Context;
 use structopt::StructOpt;
 
 use crate::cli::Args;
-use crate::config::initialize_global_config;
 use crate::manifest::Manifest;
+use crate::tool_storage::ToolStorage;
 
 fn run() -> anyhow::Result<()> {
     let exe_name =
@@ -25,7 +29,8 @@ fn run() -> anyhow::Result<()> {
     // TODO: Resolve our current exe name against all manifests from our current
     // directory.
 
-    initialize_global_config()?;
+    Manifest::init_global()?;
+    ToolStorage::init()?;
 
     let args = Args::from_args();
 

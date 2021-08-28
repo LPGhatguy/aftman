@@ -1,5 +1,8 @@
 use structopt::StructOpt;
 
+use crate::tool_alias::ToolAlias;
+use crate::tool_spec::ToolSpec;
+
 #[derive(Debug, StructOpt)]
 pub struct Args {
     #[structopt(subcommand)]
@@ -21,11 +24,11 @@ pub struct ListSubcommand {}
 #[derive(Debug, StructOpt)]
 pub struct AddSubcommand {
     /// The name that will be used to run the tool.
-    pub tool_alias: String,
+    pub tool_alias: ToolAlias,
 
     /// A tool specification describing where to get the tool and what version
     /// to install.
-    pub tool_spec: String,
+    pub tool_spec: ToolSpec,
 }
 
 /// Updates one or more tools that are managed by Aftman.

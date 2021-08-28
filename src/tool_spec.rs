@@ -1,11 +1,12 @@
 use std::fmt;
 use std::str::FromStr;
 
+use anyhow::{format_err, Context};
 use semver::Version;
 use serde::de::{Deserialize, Deserializer, Error, Visitor};
 use serde::ser::{Serialize, Serializer};
 
-use anyhow::{ensure, format_err, Context};
+use crate::ident::check_ident;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ToolSpec {
@@ -46,21 +47,6 @@ impl ToolSpec {
     pub fn version(&self) -> Option<&Version> {
         self.version.as_ref()
     }
-}
-
-fn check_ident(ident_type: &str, ident: &str) -> anyhow::Result<()> {
-    ensure!(ident.len() > 0, "{} must be non-empty", ident_type);
-    ensure!(
-        !ident.chars().all(char::is_whitespace),
-        "{} must be non-empty",
-        ident_type
-    );
-    ensure!(
-        ident.chars().all(|c| c != '/'),
-        "{} must not contain a slash"
-    );
-
-    Ok(())
 }
 
 impl FromStr for ToolSpec {
