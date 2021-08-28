@@ -9,6 +9,12 @@ pub struct Args {
     pub subcommand: Subcommand,
 }
 
+impl Args {
+    pub fn run(self) -> anyhow::Result<()> {
+        Ok(())
+    }
+}
+
 #[derive(Debug, StructOpt)]
 pub enum Subcommand {
     List(ListSubcommand),

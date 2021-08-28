@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
@@ -28,6 +29,12 @@ impl FromStr for ToolAlias {
 
     fn from_str(value: &str) -> anyhow::Result<Self> {
         ToolAlias::new(value)
+    }
+}
+
+impl Borrow<str> for ToolAlias {
+    fn borrow(&self) -> &str {
+        &self.name.as_ref()
     }
 }
 
