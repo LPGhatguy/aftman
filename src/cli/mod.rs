@@ -1,7 +1,8 @@
 use structopt::StructOpt;
 
 use crate::tool_alias::ToolAlias;
-use crate::tool_spec::ToolSpec;
+use crate::tool_id::ToolId;
+use crate::tool_storage::ToolStorage;
 
 #[derive(Debug, StructOpt)]
 pub struct Args {
@@ -11,7 +12,11 @@ pub struct Args {
 
 impl Args {
     pub fn run(self) -> anyhow::Result<()> {
-        Ok(())
+        match self.subcommand {
+            Subcommand::List(_) => todo!(),
+            Subcommand::Add(sub) => sub.run(),
+            Subcommand::Update(_) => todo!(),
+        }
     }
 }
 
@@ -32,9 +37,15 @@ pub struct AddSubcommand {
     /// The name that will be used to run the tool.
     pub tool_alias: ToolAlias,
 
-    /// A tool specification describing where to get the tool and what version
+    /// A tool ID describing where to get the tool and what version
     /// to install.
-    pub tool_spec: ToolSpec,
+    pub tool_id: ToolId,
+}
+
+impl AddSubcommand {
+    pub fn run(self) -> anyhow::Result<()> {
+        ToolStorage::add(&self.tool_alias, &self.tool_id)
+    }
 }
 
 /// Updates one or more tools that are managed by Aftman.
