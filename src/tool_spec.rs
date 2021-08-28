@@ -6,46 +6,34 @@ use semver::Version;
 use serde::de::{Deserialize, Deserializer, Error, Visitor};
 use serde::ser::{Serialize, Serializer};
 
-use crate::ident::check_ident;
+use crate::tool_name::ToolName;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ToolSpec {
-    scope: String,
-    name: String,
+    name: ToolName,
     version: Option<Version>,
 }
 
 impl ToolSpec {
-    pub fn new<S, N>(scope: S, name: N, version: Option<Version>) -> anyhow::Result<Self>
-    where
-        S: Into<String>,
-        N: Into<String>,
-    {
-        let scope = scope.into();
-        let name = name.into();
-
-        scope.chars().any(char::is_whitespace);
-
-        check_ident("Scope", &scope)?;
-        check_ident("Name", &name)?;
-
-        Ok(Self {
-            scope,
-            name,
-            version,
-        })
+    pub fn new(name: ToolName, version: Option<Version>) -> Self {
+        Self { name, version }
     }
 
-    pub fn scope(&self) -> &str {
-        &self.scope
-    }
-
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &ToolName {
         &self.name
     }
 
     pub fn version(&self) -> Option<&Version> {
         self.version.as_ref()
+    }
+}
+
+impl fmt::Display for ToolSpec {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        match &self.version {
+            Some(version) => write!(formatter, "{}@{}", self.name, version),
+            None => write!(formatter, "{}", self.name),
+        }
     }
 }
 
@@ -57,15 +45,9 @@ impl FromStr for ToolSpec {
             format_err!("Invalid Tool Spec \"{}\". It must be of the form SCOPE/NAME or SCOPE/NAME@VERSION.", value)
         };
 
-        let mut scope_rest = value.splitn(2, '/');
-        let scope = scope_rest.next().unwrap();
-
-        let mut name_version = scope_rest
-            .next()
-            .ok_or_else(|| format_err!("NAME is missing."))
-            .with_context(context)?
-            .splitn(2, '@');
+        let mut name_version = value.splitn(2, '@');
         let name = name_version.next().unwrap();
+        let name = ToolName::from_str(name).with_context(context)?;
 
         let version = match name_version.next() {
             None => None,
@@ -82,17 +64,13 @@ impl FromStr for ToolSpec {
             }
         };
 
-        Self::new(scope, name, version).with_context(context)
+        Ok(Self::new(name, version))
     }
 }
 
 impl Serialize for ToolSpec {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let formatted = match &self.version {
-            Some(version) => format!("{}/{}@{}", self.scope, self.name, version),
-            None => format!("{}/{}", self.scope, self.name),
-        };
-        serializer.serialize_str(&formatted)
+        serializer.serialize_str(&self.to_string())
     }
 }
 
@@ -125,11 +103,12 @@ mod test {
 
     /// Utility to create a ToolSpec for creating quick test cases.
     fn spec(scope: &str, name: &str, version: Option<&str>) -> ToolSpec {
+        let name = ToolName::new(scope, name).expect("failed to create test ToolName");
         let version = match version {
             Some(v) => Some(Version::parse(v).expect("failed to create test Version")),
             None => None,
         };
-        ToolSpec::new(scope, name, version).expect("failed to create test ToolSpec")
+        ToolSpec::new(name, version)
     }
 
     #[test]

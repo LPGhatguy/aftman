@@ -6,46 +6,31 @@ use semver::Version;
 use serde::de::{Deserialize, Deserializer, Error, Visitor};
 use serde::ser::{Serialize, Serializer};
 
-use crate::ident::check_ident;
+use crate::tool_name::ToolName;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ToolId {
-    scope: String,
-    name: String,
+    name: ToolName,
     version: Version,
 }
 
 impl ToolId {
-    pub fn new<S, N>(scope: S, name: N, version: Version) -> anyhow::Result<Self>
-    where
-        S: Into<String>,
-        N: Into<String>,
-    {
-        let scope = scope.into();
-        let name = name.into();
-
-        scope.chars().any(char::is_whitespace);
-
-        check_ident("Scope", &scope)?;
-        check_ident("Name", &name)?;
-
-        Ok(Self {
-            scope,
-            name,
-            version,
-        })
+    pub fn new(name: ToolName, version: Version) -> Self {
+        Self { name, version }
     }
 
-    pub fn scope(&self) -> &str {
-        &self.scope
-    }
-
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &ToolName {
         &self.name
     }
 
     pub fn version(&self) -> &Version {
         &self.version
+    }
+}
+
+impl fmt::Display for ToolId {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "{}@{}", self.name, self.version)
     }
 }
 
@@ -60,15 +45,9 @@ impl FromStr for ToolId {
             )
         };
 
-        let mut scope_rest = value.splitn(2, '/');
-        let scope = scope_rest.next().unwrap();
-
-        let mut name_version = scope_rest
-            .next()
-            .ok_or_else(|| format_err!("NAME is missing."))
-            .with_context(context)?
-            .splitn(2, '@');
+        let mut name_version = value.splitn(2, '@');
         let name = name_version.next().unwrap();
+        let name = ToolName::from_str(&name).with_context(context)?;
 
         let version = name_version
             .next()
@@ -78,14 +57,13 @@ impl FromStr for ToolId {
             .context("Invalid version")
             .with_context(context)?;
 
-        Self::new(scope, name, version).with_context(context)
+        Ok(Self::new(name, version))
     }
 }
 
 impl Serialize for ToolId {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let formatted = format!("{}/{}@{}", self.scope, self.name, self.version);
-        serializer.serialize_str(&formatted)
+        serializer.serialize_str(&self.to_string())
     }
 }
 
@@ -115,8 +93,9 @@ mod test {
 
     /// Utility to create a ToolSpec for creating quick test cases.
     fn spec(scope: &str, name: &str, version: &str) -> ToolId {
+        let name = ToolName::new(scope, name).expect("failed to create test ToolName");
         let version = Version::parse(version).expect("failed to create test Version");
-        ToolId::new(scope, name, version).expect("failed to create test ToolId")
+        ToolId::new(name, version)
     }
 
     #[test]
@@ -126,7 +105,7 @@ mod test {
             assert_eq!(parsed, expected);
         }
 
-        test("a/b@1.0.0", spec("a", "b", Some("1.0.0")));
+        test("a/b@1.0.0", spec("a", "b", "1.0.0"));
     }
 
     #[test]
@@ -165,7 +144,7 @@ mod test {
         test("a/b", &["version is missing"]);
         test("hello/world", &["version is missing"]);
 
-        test("abc/abc@", &["version must be non-empty"]);
+        test("abc/abc@", &["invalid version"]);
         test("abc/abc@1", &["invalid version"]);
     }
 

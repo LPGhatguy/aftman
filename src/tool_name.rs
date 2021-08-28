@@ -37,6 +37,12 @@ impl ToolName {
     }
 }
 
+impl fmt::Display for ToolName {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "{}/{}", self.scope, self.scope)
+    }
+}
+
 impl FromStr for ToolName {
     type Err = anyhow::Error;
 
@@ -62,8 +68,7 @@ impl FromStr for ToolName {
 
 impl Serialize for ToolName {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let formatted = format!("{}/{}", self.scope, self.name);
-        serializer.serialize_str(&formatted)
+        serializer.serialize_str(&self.to_string())
     }
 }
 
