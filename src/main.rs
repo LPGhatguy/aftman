@@ -1,5 +1,6 @@
 mod cli;
 mod config;
+mod github;
 mod ident;
 mod manifest;
 mod tool_alias;
@@ -22,16 +23,19 @@ fn run() -> anyhow::Result<()> {
     let start_dir = current_dir().context("Failed to find current working directory")?;
     let manifests = Manifest::discover(&start_dir)?;
 
+    let tool_storage = ToolStorage::init()?;
+
     for manifest in &manifests {
         if let Some(tool_id) = manifest.tools.get(exe_name.as_str()) {
-            todo!("Run {}", tool_id);
+            let args = std::env::args().collect();
+            tool_storage.run(tool_id, args)?;
+            return Ok(());
         }
     }
 
     Manifest::init_global()?;
-    ToolStorage::init()?;
 
-    Args::from_args().run()
+    Args::from_args().run(tool_storage)
 }
 
 fn current_exe_name() -> anyhow::Result<String> {

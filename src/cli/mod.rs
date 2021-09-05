@@ -11,10 +11,10 @@ pub struct Args {
 }
 
 impl Args {
-    pub fn run(self) -> anyhow::Result<()> {
+    pub fn run(self, tools: ToolStorage) -> anyhow::Result<()> {
         match self.subcommand {
             Subcommand::List(_) => todo!(),
-            Subcommand::Add(sub) => sub.run(),
+            Subcommand::Add(sub) => sub.run(tools),
             Subcommand::Update(_) => todo!(),
         }
     }
@@ -43,8 +43,8 @@ pub struct AddSubcommand {
 }
 
 impl AddSubcommand {
-    pub fn run(self) -> anyhow::Result<()> {
-        ToolStorage::add(&self.tool_alias, &self.tool_id)
+    pub fn run(self, tools: ToolStorage) -> anyhow::Result<()> {
+        tools.add(&self.tool_alias, &self.tool_id)
     }
 }
 

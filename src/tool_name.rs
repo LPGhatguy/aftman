@@ -9,37 +9,48 @@ use crate::ident::check_ident;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ToolName {
-    scope: String,
-    name: String,
+    inner: String,
+    scope_len: usize,
 }
 
 impl ToolName {
     pub fn new<S, N>(scope: S, name: N) -> anyhow::Result<Self>
     where
-        S: Into<String>,
-        N: Into<String>,
+        S: AsRef<str>,
+        N: AsRef<str>,
     {
-        let scope = scope.into();
-        let name = name.into();
+        let scope = scope.as_ref();
+        let name = name.as_ref();
 
         check_ident("Scope", &scope)?;
         check_ident("Name", &name)?;
 
-        Ok(Self { scope, name })
+        let inner = format!("{}/{}", scope, name);
+
+        Ok(Self {
+            inner,
+            scope_len: scope.len(),
+        })
     }
 
     pub fn scope(&self) -> &str {
-        &self.scope
+        &self.inner[0..self.scope_len]
     }
 
     pub fn name(&self) -> &str {
-        &self.name
+        &self.inner[(self.scope_len + 1)..]
+    }
+}
+
+impl AsRef<str> for ToolName {
+    fn as_ref(&self) -> &str {
+        self.inner.as_ref()
     }
 }
 
 impl fmt::Display for ToolName {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, "{}/{}", self.scope, self.scope)
+        formatter.write_str(&self.inner)
     }
 }
 
@@ -68,7 +79,7 @@ impl FromStr for ToolName {
 
 impl Serialize for ToolName {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(&self.to_string())
+        serializer.serialize_str(&self.inner)
     }
 }
 
@@ -99,6 +110,16 @@ mod test {
     /// Utility to create a ToolName for creating quick test cases.
     fn name(scope: &str, name: &str) -> ToolName {
         ToolName::new(scope, name).expect("failed to create test ToolName")
+    }
+
+    /// The getters for this type might have some off-by-one errors. Let's make
+    /// sure they don't!
+    #[test]
+    fn getters() {
+        let name = name("hello", "world");
+
+        assert_eq!(name.scope(), "hello");
+        assert_eq!(name.name(), "world");
     }
 
     #[test]
