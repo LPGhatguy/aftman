@@ -8,6 +8,7 @@ mod tool_name;
 mod tool_source;
 mod tool_spec;
 mod tool_storage;
+mod trust;
 
 use std::env::{consts::EXE_SUFFIX, current_dir, current_exe};
 

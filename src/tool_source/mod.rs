@@ -35,6 +35,7 @@ impl Asset {
             (Some(Os::MacOS), Some(Arch::Arm64)) => OS == "macos" && ARCH == "aarch64",
             (Some(Os::MacOS), Some(Arch::X64)) => OS == "macos" && (ARCH == "aarch64" || ARCH == "x86_64"),
             (Some(Os::Linux), Some(Arch::X64)) => OS == "linux" && ARCH == "x86_64",
+            (Some(Os::Linux), Some(Arch::X86)) => OS == "linux" && (ARCH == "x86_64" || ARCH == "x86"),
             _ => false,
         }
     }
@@ -65,6 +66,7 @@ impl Asset {
         } else if match_name.contains("x86")
             || match_name.contains("i686")
             || match_name.contains("win32")
+            || match_name.contains("i386")
         {
             Some(Architecture::X86)
         } else if match_name.contains("aarch64") || match_name.contains("arm64") {
@@ -110,18 +112,6 @@ impl OperatingSystem {
             Self::Linux => OS == "linux",
         }
     }
-
-    pub fn native() -> Option<Self> {
-        if cfg!(target_os = "windows") {
-            Some(OperatingSystem::Windows)
-        } else if cfg!(target_os = "macos") {
-            Some(OperatingSystem::MacOS)
-        } else if cfg!(target_os = "linux") {
-            Some(OperatingSystem::Linux)
-        } else {
-            None
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -132,39 +122,9 @@ pub enum Architecture {
     Arm64, // aka AArch64
 }
 
-impl Architecture {
-    pub fn native() -> Option<Self> {
-        if cfg!(target_arch = "x86") {
-            Some(Architecture::X86)
-        } else if cfg!(target_arch = "x86_64") {
-            Some(Architecture::X64)
-        } else if cfg!(target_arch = "arm") {
-            Some(Architecture::Arm32)
-        } else if cfg!(target_arch = "aarch64") {
-            Some(Architecture::Arm64)
-        } else {
-            None
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Toolchain {
     Msvc,
     Gnu,
     Musl,
-}
-
-impl Toolchain {
-    pub fn native() -> Option<Self> {
-        if cfg!(target_env = "msvc") {
-            Some(Toolchain::Msvc)
-        } else if cfg!(target_env = "gnu") {
-            Some(Toolchain::Gnu)
-        } else if cfg!(target_env = "musl") {
-            Some(Toolchain::Musl)
-        } else {
-            None
-        }
-    }
 }

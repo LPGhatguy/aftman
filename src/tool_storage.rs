@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::cmp::Reverse;
 use std::collections::BTreeSet;
 use std::env::{consts::EXE_SUFFIX, current_exe};
 use std::fmt::Write;
@@ -14,7 +13,7 @@ use crate::config::config_dir;
 use crate::tool_alias::ToolAlias;
 use crate::tool_id::ToolId;
 use crate::tool_name::ToolName;
-use crate::tool_source::{Architecture, GitHubSource, OperatingSystem};
+use crate::tool_source::GitHubSource;
 use crate::tool_spec::ToolSpec;
 
 pub struct ToolStorage {
@@ -104,7 +103,7 @@ impl ToolStorage {
                 .iter()
                 .any(|asset| asset.arch.is_some() && asset.compatible());
 
-            let mut compatible_assets: Vec<_> = release
+            let compatible_assets: Vec<_> = release
                 .assets
                 .iter()
                 .filter(|asset| {
