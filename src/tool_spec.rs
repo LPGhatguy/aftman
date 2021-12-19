@@ -6,9 +6,10 @@ use semver::Version;
 use serde::de::{Deserialize, Deserializer, Error, Visitor};
 use serde::ser::{Serialize, Serializer};
 
+use crate::tool_id::ToolId;
 use crate::tool_name::ToolName;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ToolSpec {
     name: ToolName,
     version: Option<Version>,
@@ -25,6 +26,18 @@ impl ToolSpec {
 
     pub fn version(&self) -> Option<&Version> {
         self.version.as_ref()
+    }
+
+    pub fn matches(&self, id: &ToolId) -> bool {
+        if self.name() != id.name() {
+            return false;
+        }
+
+        if let Some(version) = self.version() {
+            version == id.version()
+        } else {
+            true
+        }
     }
 }
 

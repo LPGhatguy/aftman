@@ -1,11 +1,11 @@
 mod cli;
 mod config;
-mod github;
 mod ident;
 mod manifest;
 mod tool_alias;
 mod tool_id;
 mod tool_name;
+mod tool_source;
 mod tool_spec;
 mod tool_storage;
 
@@ -53,6 +53,8 @@ fn current_exe_name() -> anyhow::Result<String> {
 }
 
 fn main() {
+    env_logger::init();
+
     if let Err(err) = run() {
         eprintln!("Aftman error: {:?}", err);
         std::process::exit(1);

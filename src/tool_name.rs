@@ -7,7 +7,7 @@ use serde::ser::{Serialize, Serializer};
 
 use crate::ident::check_ident;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ToolName {
     inner: String,
     scope_len: usize,

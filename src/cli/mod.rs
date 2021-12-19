@@ -1,7 +1,7 @@
 use structopt::StructOpt;
 
 use crate::tool_alias::ToolAlias;
-use crate::tool_id::ToolId;
+use crate::tool_spec::ToolSpec;
 use crate::tool_storage::ToolStorage;
 
 #[derive(Debug, StructOpt)]
@@ -34,17 +34,17 @@ pub struct ListSubcommand {}
 /// Adds a new tool to Aftman and install it.
 #[derive(Debug, StructOpt)]
 pub struct AddSubcommand {
-    /// The name that will be used to run the tool.
-    pub tool_alias: ToolAlias,
+    /// A tool spec describing where to get the tool and what version to
+    /// install.
+    pub tool_spec: ToolSpec,
 
-    /// A tool ID describing where to get the tool and what version
-    /// to install.
-    pub tool_id: ToolId,
+    /// The name that will be used to run the tool.
+    pub tool_alias: Option<ToolAlias>,
 }
 
 impl AddSubcommand {
     pub fn run(self, tools: ToolStorage) -> anyhow::Result<()> {
-        tools.add(&self.tool_alias, &self.tool_id)
+        tools.add(&self.tool_spec, self.tool_alias.as_ref())
     }
 }
 

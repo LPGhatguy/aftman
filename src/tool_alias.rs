@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ident::check_ident;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct ToolAlias {
     name: String,
