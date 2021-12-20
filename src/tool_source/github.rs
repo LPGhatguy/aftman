@@ -1,4 +1,4 @@
-use std::io::Read;
+use std::io::{Cursor, Read, Seek};
 
 use anyhow::Context;
 use reqwest::{
@@ -8,8 +8,9 @@ use reqwest::{
 use semver::Version;
 use serde::{Deserialize, Serialize};
 
+use crate::tool_id::ToolId;
 use crate::tool_name::ToolName;
-use crate::{tool_id::ToolId, tool_source::Asset};
+use crate::tool_source::Asset;
 
 use super::Release;
 
@@ -76,7 +77,7 @@ impl GitHubSource {
             .with_context(|| format!("Could not find release {}", spec))
     }
 
-    pub fn download_asset(&self, url: &str) -> anyhow::Result<impl Read> {
+    pub fn download_asset(&self, url: &str) -> anyhow::Result<impl Read + Seek> {
         let builder = self
             .client
             .get(url)
@@ -85,7 +86,10 @@ impl GitHubSource {
 
         // TODO: Authorization
 
-        Ok(builder.send()?)
+        let response = builder.send()?;
+        let body = response.bytes()?.to_vec();
+
+        Ok(Cursor::new(body))
     }
 }
 

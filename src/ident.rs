@@ -11,7 +11,8 @@ pub fn check_ident(ident_type: &str, ident: &str) -> anyhow::Result<()> {
     );
     ensure!(
         ident.chars().all(|c| c != '/'),
-        "{} must not contain a slash"
+        "{} must not contain a slash",
+        ident_type
     );
 
     Ok(())

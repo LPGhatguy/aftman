@@ -2,23 +2,25 @@ use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::env::{consts::EXE_SUFFIX, current_exe};
 use std::fmt::Write;
-use std::io;
+use std::io::Write as _;
+use std::io::{self, BufWriter};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use anyhow::{bail, Context};
+use fs_err::File;
 use once_cell::unsync::OnceCell;
 
 use crate::config::config_dir;
 use crate::tool_alias::ToolAlias;
 use crate::tool_id::ToolId;
-use crate::tool_name::ToolName;
 use crate::tool_source::GitHubSource;
 use crate::tool_spec::ToolSpec;
+use crate::trust::TrustCache;
 
 pub struct ToolStorage {
-    storage_dir: PathBuf,
-    bin_dir: PathBuf,
+    pub storage_dir: PathBuf,
+    pub bin_dir: PathBuf,
     github: OnceCell<GitHubSource>,
 }
 
@@ -51,8 +53,6 @@ impl ToolStorage {
     }
 
     pub fn run(&self, id: &ToolId, args: Vec<String>) -> anyhow::Result<i32> {
-        eprintln!("Run {} with args {:?}", id, args);
-
         self.install_exact(id)?;
 
         let exe_path = self.exe_path(id);
@@ -61,11 +61,26 @@ impl ToolStorage {
         Ok(status.code().unwrap_or(1))
     }
 
+    pub fn update_links(&self) -> anyhow::Result<()> {
+        let self_path =
+            current_exe().context("Failed to discover path to the Aftman executable")?;
+
+        for entry in fs_err::read_dir(&self.bin_dir)? {
+            let entry = entry?;
+            let path = entry.path();
+
+            fs_err::copy(&self_path, path)?;
+        }
+
+        let aftman_path = self.bin_dir.join(format!("aftman{}", EXE_SUFFIX));
+        fs_err::copy(&self_path, aftman_path)?;
+
+        Ok(())
+    }
+
     /// Ensure a tool that matches the given spec is installed.
     fn install_inexact(&self, spec: &ToolSpec) -> anyhow::Result<()> {
-        let mut installed_path = self.exe_dir(spec.name());
-        installed_path.push("installed.txt");
-
+        let installed_path = self.storage_dir.join("installed.txt");
         let installed = InstalledToolsCache::read(&installed_path)?;
         let is_installed = installed.tools.iter().any(|id| spec.matches(&id));
 
@@ -73,15 +88,47 @@ impl ToolStorage {
             return Ok(());
         }
 
-        // TODO: Trust check for this tool source
+        let trusted_path = self.storage_dir.join("trusted.txt");
+        let trusted = TrustCache::read(&trusted_path)?;
+        let is_trusted = trusted.tools.contains(spec.name());
 
-        log::info!("Attempting to install tool: {}", spec);
+        if !is_trusted {
+            if atty::isnt(atty::Stream::Stderr) {
+                bail!(
+                    "Tool {} has never been installed and is not a trusted tool. \
+                     Run `aftman add {}` in your terminal to install it and trust this tool.",
+                    spec.name(),
+                    spec
+                );
+            }
 
+            let proceed = dialoguer::Confirm::new()
+                .with_prompt(format!(
+                    "Tool {} has never been installed before. Trust this tool?",
+                    spec.name()
+                ))
+                .interact_opt()?;
+
+            if let Some(false) | None = proceed {
+                eprintln!(
+                    "Skipping installation of {} and exiting with an error.",
+                    spec
+                );
+                std::process::exit(1);
+            }
+
+            TrustCache::add(&trusted_path, spec.name().clone())?;
+        }
+
+        log::info!("Installing tool: {}", spec);
+
+        log::debug!("Fetching GitHub releases...");
         let github = self.github.get_or_init(GitHubSource::new);
         let mut releases = github.get_all_releases(spec.name())?;
         releases.sort_by(|a, b| a.version.cmp(&b.version).reverse());
 
         log::trace!("All releases found: {:#?}", releases);
+        log::debug!("Choosing a release...");
 
         for release in &releases {
             // If we've requested a version, skip any releases that don't match
@@ -133,7 +180,60 @@ impl ToolStorage {
                 continue;
             }
 
-            todo!("Install one of these assets: {:#?}", compatible_assets);
+            if compatible_assets.len() > 1 {
+                let compatible_output = compatible_assets
+                    .iter()
+                    .map(|asset| format!("- {}", asset.name))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+
+                bail!(
+                    "More than one compatible asset for {} v{} was found for your system. \
+                    Aftman doesn't know how to handle this yet.\n\
+                    Compatible assets:\n\
+                    {}",
+                    spec.name(),
+                    release.version,
+                    compatible_output
+                );
+            }
+
+            log::debug!("Extracting archive...");
+
+            let id = ToolId::new(spec.name().clone(), release.version.clone());
+            let output_path = self.exe_path(&id);
+
+            let asset = &compatible_assets[0];
+            let artifact = github.download_asset(&asset.url)?;
+            let expected_name = format!("{}{}", spec.name().name(), EXE_SUFFIX);
+
+            let mut zip = zip::ZipArchive::new(artifact)?;
+            for i in 0..zip.len() {
+                let mut file = zip.by_index(i)?;
+                if file.name() == expected_name {
+                    fs_err::create_dir_all(output_path.parent().unwrap())?;
+
+                    let mut output = BufWriter::new(File::create(output_path)?);
+                    io::copy(&mut file, &mut output)?;
+                    output.flush()?;
+
+                    log::info!(
+                        "{} v{} installed successfully.",
+                        spec.name(),
+                        release.version
+                    );
+
+                    return Ok(());
+                }
+            }
+
+            bail!(
+                "Could not find executable {} in asset {} for tool {} v{}",
+                expected_name,
+                asset.name,
+                spec.name(),
+                release.version
+            );
         }
 
         Ok(())
@@ -151,7 +251,7 @@ impl ToolStorage {
 
     fn link(&self, alias: &ToolAlias) -> anyhow::Result<()> {
         let self_path =
-            current_exe().context("Failed to discover the name of the Aftman executable")?;
+            current_exe().context("Failed to discover path to the Aftman executable")?;
 
         let link_name = format!("{}{}", alias.as_ref(), EXE_SUFFIX);
         let link_path = self.bin_dir.join(link_name);
@@ -160,19 +260,12 @@ impl ToolStorage {
         Ok(())
     }
 
-    fn exe_dir(&self, name: &ToolName) -> PathBuf {
-        let mut dir = self.storage_dir.clone();
-        dir.push(name.scope());
-        dir.push(name.name());
-        dir
-    }
-
     fn exe_path(&self, id: &ToolId) -> PathBuf {
         let mut dir = self.storage_dir.clone();
         dir.push(id.name().scope());
         dir.push(id.name().name());
         dir.push(id.version().to_string());
-        dir.push(format!("{}{}", id.name(), EXE_SUFFIX));
+        dir.push(format!("{}{}", id.name().name(), EXE_SUFFIX));
         dir
     }
 }

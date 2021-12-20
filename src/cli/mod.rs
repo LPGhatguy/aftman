@@ -16,6 +16,7 @@ impl Args {
             Subcommand::List(_) => todo!(),
             Subcommand::Add(sub) => sub.run(tools),
             Subcommand::Update(_) => todo!(),
+            Subcommand::SelfUpdate(sub) => sub.run(tools),
         }
     }
 }
@@ -25,13 +26,14 @@ pub enum Subcommand {
     List(ListSubcommand),
     Add(AddSubcommand),
     Update(UpdateSubcommand),
+    SelfUpdate(SelfUpdateSubcommand),
 }
 
 /// Lists all existing tools managed by Aftman.
 #[derive(Debug, StructOpt)]
 pub struct ListSubcommand {}
 
-/// Adds a new tool to Aftman and install it.
+/// Adds a new tool to Aftman and installs it.
 #[derive(Debug, StructOpt)]
 pub struct AddSubcommand {
     /// A tool spec describing where to get the tool and what version to
@@ -61,4 +63,14 @@ pub struct UpdateSubcommand {
     /// Ignore semantic versioning and upgrade to the latest stable versions.
     #[structopt(long)]
     pub latest: bool,
+}
+
+/// Update all aliases to Aftman. Run this after Aftman has been upgraded.
+#[derive(Debug, StructOpt)]
+pub struct SelfUpdateSubcommand {}
+
+impl SelfUpdateSubcommand {
+    pub fn run(self, tools: ToolStorage) -> anyhow::Result<()> {
+        tools.update_links()
+    }
 }

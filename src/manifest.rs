@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::{bail, format_err, Context};
 use serde::{Deserialize, Serialize};
@@ -23,6 +23,10 @@ static DEFAULT_GLOBAL_MANIFEST: &str = r#"
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Manifest {
     pub tools: BTreeMap<ToolAlias, ToolId>,
+
+    /// The path that this manifest was loaded from if it was loaded from a file.
+    #[serde(skip)]
+    pub path: Option<PathBuf>,
 }
 
 impl Manifest {
@@ -81,8 +85,10 @@ impl Manifest {
             }
         };
 
-        let manifest: Manifest = toml::from_slice(&contents)
+        let mut manifest: Manifest = toml::from_slice(&contents)
             .with_context(|| format_err!("Invalid manifest at {}", file_path.display()))?;
+
+        manifest.path = Some(file_path);
 
         Ok(Some(manifest))
     }
