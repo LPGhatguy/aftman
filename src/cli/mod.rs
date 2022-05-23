@@ -6,9 +6,10 @@ use structopt::StructOpt;
 
 use crate::manifest::Manifest;
 use crate::tool_alias::ToolAlias;
+use crate::tool_name::ToolName;
 use crate::tool_spec::ToolSpec;
 use crate::tool_storage::ToolStorage;
-use crate::trust::TrustMode;
+use crate::trust::{TrustCache, TrustMode};
 
 #[derive(Debug, StructOpt)]
 pub struct Args {
@@ -25,6 +26,7 @@ impl Args {
             Subcommand::Update(_) => todo!(),
             Subcommand::Install(sub) => sub.run(tools),
             Subcommand::SelfInstall(sub) => sub.run(tools),
+            Subcommand::Trust(sub) => sub.run(tools),
         }
     }
 }
@@ -37,6 +39,7 @@ pub enum Subcommand {
     Update(UpdateSubcommand),
     Install(InstallSubcommand),
     SelfInstall(SelfInstallSubcommand),
+    Trust(TrustSubcommand),
 }
 
 /// Initialize a new Aftman manifest file.
@@ -141,6 +144,27 @@ impl SelfInstallSubcommand {
             );
         } else {
             log::debug!("Aftman already on user PATH, did not modify PATH.");
+        }
+
+        Ok(())
+    }
+}
+
+/// Mark the given tool name as being trusted.
+#[derive(Debug, StructOpt)]
+pub struct TrustSubcommand {
+    /// The tool to mark as trusted.
+    pub name: ToolName,
+}
+
+impl TrustSubcommand {
+    pub fn run(self, tools: ToolStorage) -> anyhow::Result<()> {
+        let trusted_path = tools.storage_dir.join("trusted.txt");
+
+        if TrustCache::add(&trusted_path, self.name.clone())? {
+            log::info!("Added {} to the set of trusted tools.", self.name);
+        } else {
+            log::info!("{} was already a trusted tool.", self.name);
         }
 
         Ok(())

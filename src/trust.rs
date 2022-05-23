@@ -39,16 +39,20 @@ impl TrustCache {
         Ok(Self { tools })
     }
 
-    pub fn add(path: &Path, name: ToolName) -> anyhow::Result<()> {
+    pub fn add(path: &Path, name: ToolName) -> anyhow::Result<bool> {
         let mut cache = Self::read(path)?;
-        cache.tools.insert(name);
 
-        let mut output = String::new();
-        for tool in cache.tools {
-            writeln!(&mut output, "{}", tool).unwrap();
+        if cache.tools.insert(name) {
+            let mut output = String::new();
+            for tool in cache.tools {
+                writeln!(&mut output, "{}", tool).unwrap();
+            }
+
+            fs_err::write(path, output)?;
+
+            return Ok(true);
         }
 
-        fs_err::write(path, output)?;
-        Ok(())
+        Ok(false)
     }
 }

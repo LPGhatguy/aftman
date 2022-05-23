@@ -135,6 +135,17 @@ Installs Aftman, upgrades any references to Aftman, and adds `aftman` to your sy
 
 Whenever you upgrade Aftman, run this command. Aftman makes copies of itself to mimic the tools it installs, and this command will ensure those copies get updated as well.
 
+### `aftman trust`
+Usage:
+
+```bash
+aftman trust <tool-name>
+```
+
+Adds a tool to the list of trusted tools.
+
+Aftman prompts the user before installing new tools. Running `aftman trust` beforehand skips this prompt. This is useful when running automation that depends on a tool from a known location.
+
 ### `aftman list`
 **This subcommand is not yet implemented.**
 
