@@ -282,8 +282,7 @@ impl ToolStorage {
     }
 
     fn trust_check(&self, name: &ToolName, mode: TrustMode) -> anyhow::Result<()> {
-        let trusted_path = self.storage_dir.join("trusted.txt");
-        let trusted = TrustCache::read(&trusted_path)?;
+        let trusted = TrustCache::read(&self.home)?;
         let is_trusted = trusted.tools.contains(name);
 
         if !is_trusted {
@@ -315,7 +314,7 @@ impl ToolStorage {
                 }
             }
 
-            TrustCache::add(&trusted_path, name.clone())?;
+            TrustCache::add(&self.home, name.clone())?;
         }
 
         Ok(())

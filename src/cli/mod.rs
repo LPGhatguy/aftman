@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use anyhow::{bail, Context};
 use structopt::StructOpt;
 
+use crate::home::Home;
 use crate::manifest::Manifest;
 use crate::tool_alias::ToolAlias;
 use crate::tool_name::ToolName;
@@ -18,12 +19,12 @@ pub struct Args {
 }
 
 impl Args {
-    pub fn run(self, tools: ToolStorage) -> anyhow::Result<()> {
+    pub fn run(self, home: &Home, tools: ToolStorage) -> anyhow::Result<()> {
         match self.subcommand {
             Subcommand::Init(sub) => sub.run(),
             Subcommand::Add(sub) => sub.run(tools),
             Subcommand::Install(sub) => sub.run(tools),
-            Subcommand::Trust(sub) => sub.run(tools),
+            Subcommand::Trust(sub) => sub.run(home),
             Subcommand::SelfInstall(sub) => sub.run(tools),
 
             Subcommand::List(_) => bail!("This command is not yet implemented."),
@@ -141,10 +142,8 @@ pub struct TrustSubcommand {
 }
 
 impl TrustSubcommand {
-    pub fn run(self, tools: ToolStorage) -> anyhow::Result<()> {
-        let trusted_path = tools.storage_dir.join("trusted.txt");
-
-        if TrustCache::add(&trusted_path, self.name.clone())? {
+    pub fn run(self, home: &Home) -> anyhow::Result<()> {
+        if TrustCache::add(home, self.name.clone())? {
             log::info!("Added {} to the set of trusted tools.", self.name);
         } else {
             log::info!("{} was already a trusted tool.", self.name);

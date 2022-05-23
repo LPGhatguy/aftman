@@ -11,6 +11,10 @@ use anyhow::format_err;
 #[derive(Debug, Clone)]
 pub struct Home {
     path: Arc<Path>,
+
+    #[cfg(test)]
+    #[allow(unused)]
+    temp: Option<Arc<tempfile::TempDir>>,
 }
 
 impl Home {
@@ -25,13 +29,26 @@ impl Home {
             dirs::home_dir().ok_or_else(|| format_err!("Home directory could not be found."))?;
 
         path.push(".aftman");
-        Ok(Self { path: path.into() })
+
+        Ok(Self::from_path(path))
     }
 
-    #[allow(unused)]
-    pub fn from_path<P: Into<PathBuf>>(path: P) -> Self {
+    #[cfg(test)]
+    pub fn new_temp() -> anyhow::Result<Self> {
+        let temp = tempfile::TempDir::new()?;
+
+        Ok(Self {
+            path: temp.path().to_path_buf().into(),
+            temp: Some(Arc::new(temp)),
+        })
+    }
+
+    fn from_path<P: Into<PathBuf>>(path: P) -> Self {
         Self {
             path: path.into().into(),
+
+            #[cfg(test)]
+            temp: None,
         }
     }
 

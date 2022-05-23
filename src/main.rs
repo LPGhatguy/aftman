@@ -62,7 +62,7 @@ fn run() -> anyhow::Result<()> {
 
     Manifest::init_global(&home)?;
 
-    Args::from_args().run(tool_storage)
+    Args::from_args().run(&home, tool_storage)
 }
 
 fn current_exe_name() -> anyhow::Result<String> {

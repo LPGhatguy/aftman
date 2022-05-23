@@ -1,10 +1,10 @@
 use std::collections::BTreeSet;
 use std::fmt::Write;
 use std::io;
-use std::path::Path;
 
 use anyhow::bail;
 
+use crate::home::Home;
 use crate::tool_name::ToolName;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -19,7 +19,9 @@ pub struct TrustCache {
 }
 
 impl TrustCache {
-    pub fn read(path: &Path) -> anyhow::Result<Self> {
+    pub fn read(home: &Home) -> anyhow::Result<Self> {
+        let path = home.path().join("trusted.txt");
+
         let contents = match fs_err::read_to_string(path) {
             Ok(v) => v,
             Err(err) => {
@@ -39,8 +41,8 @@ impl TrustCache {
         Ok(Self { tools })
     }
 
-    pub fn add(path: &Path, name: ToolName) -> anyhow::Result<bool> {
-        let mut cache = Self::read(path)?;
+    pub fn add(home: &Home, name: ToolName) -> anyhow::Result<bool> {
+        let mut cache = Self::read(home)?;
 
         if cache.tools.insert(name) {
             let mut output = String::new();
@@ -48,11 +50,36 @@ impl TrustCache {
                 writeln!(&mut output, "{}", tool).unwrap();
             }
 
+            let path = home.path().join("trusted.txt");
             fs_err::write(path, output)?;
 
             return Ok(true);
         }
 
         Ok(false)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn get_and_add() -> anyhow::Result<()> {
+        let home = Home::new_temp()?;
+
+        let cache = TrustCache::read(&home)?;
+        assert!(cache.tools.is_empty());
+
+        let tool_name: ToolName = "foo/bar".parse()?;
+
+        let added = TrustCache::add(&home, tool_name.clone())?;
+        assert!(added);
+
+        let cache = TrustCache::read(&home)?;
+        assert!(cache.tools.len() == 1);
+        assert!(cache.tools.contains(&tool_name));
+
+        Ok(())
     }
 }
