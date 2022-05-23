@@ -65,6 +65,12 @@ To install a tool system-wide so that it can be used anywhere, edit `~/.aftman/a
 aftman add --global rojo-rbx/rojo
 ```
 
+To install all tools listed by your `aftman.toml` files, run
+
+```bash
+aftman install
+```
+
 ## Supported Platforms
 Aftman supports:
 
@@ -108,6 +114,15 @@ aftman add rojo-rbx/rojo@6.2.0
 # Install Rojo with a different binary name
 aftman add rojo-rbx/rojo@6.2.0 rojo6
 ```
+
+### `aftman install`
+Usage:
+
+```bash
+aftman install
+```
+
+Install all tools listed in `aftman.toml` files based on your current directory.
 
 ### `aftman self-install`
 Usage:

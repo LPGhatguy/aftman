@@ -7,6 +7,12 @@ use anyhow::bail;
 
 use crate::tool_name::ToolName;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TrustMode {
+    Check,
+    NoCheck,
+}
+
 #[derive(Debug)]
 pub struct TrustCache {
     pub tools: BTreeSet<ToolName>,

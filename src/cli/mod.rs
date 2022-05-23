@@ -8,6 +8,7 @@ use crate::manifest::Manifest;
 use crate::tool_alias::ToolAlias;
 use crate::tool_spec::ToolSpec;
 use crate::tool_storage::ToolStorage;
+use crate::trust::TrustMode;
 
 #[derive(Debug, StructOpt)]
 pub struct Args {
@@ -22,6 +23,7 @@ impl Args {
             Subcommand::List(_) => todo!(),
             Subcommand::Add(sub) => sub.run(tools),
             Subcommand::Update(_) => todo!(),
+            Subcommand::Install(sub) => sub.run(tools),
             Subcommand::SelfInstall(sub) => sub.run(tools),
         }
     }
@@ -33,6 +35,7 @@ pub enum Subcommand {
     List(ListSubcommand),
     Add(AddSubcommand),
     Update(UpdateSubcommand),
+    Install(InstallSubcommand),
     SelfInstall(SelfInstallSubcommand),
 }
 
@@ -101,6 +104,27 @@ pub struct UpdateSubcommand {
     /// Ignore semantic versioning and upgrade to the latest stable versions.
     #[structopt(long)]
     pub latest: bool,
+}
+
+/// Install all tools listed by Aftman files from the current directory.
+#[derive(Debug, StructOpt)]
+pub struct InstallSubcommand {
+    /// Skip checking if these tools have been installed before. It is
+    /// recommended to only run this on CI machines.
+    #[structopt(long)]
+    pub no_trust_check: bool,
+}
+
+impl InstallSubcommand {
+    pub fn run(self, tools: ToolStorage) -> anyhow::Result<()> {
+        let trust = if self.no_trust_check {
+            TrustMode::NoCheck
+        } else {
+            TrustMode::Check
+        };
+
+        tools.install_all(trust)
+    }
 }
 
 /// Update all aliases to Aftman. Run this after Aftman has been upgraded.

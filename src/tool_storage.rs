@@ -17,9 +17,10 @@ use crate::config::config_dir;
 use crate::manifest::Manifest;
 use crate::tool_alias::ToolAlias;
 use crate::tool_id::ToolId;
+use crate::tool_name::ToolName;
 use crate::tool_source::{Asset, GitHubSource, Release};
 use crate::tool_spec::ToolSpec;
-use crate::trust::TrustCache;
+use crate::trust::{TrustCache, TrustMode};
 
 pub struct ToolStorage {
     pub storage_dir: PathBuf,
@@ -57,7 +58,7 @@ impl ToolStorage {
             None => Cow::Owned(ToolAlias::new(spec.name().name())?),
         };
 
-        let id = self.install_inexact(spec)?;
+        let id = self.install_inexact(spec, TrustMode::Check)?;
         self.link(&alias)?;
 
         if global {
@@ -70,7 +71,7 @@ impl ToolStorage {
     }
 
     pub fn run(&self, id: &ToolId, args: Vec<String>) -> anyhow::Result<i32> {
-        self.install_exact(id)?;
+        self.install_exact(id, TrustMode::Check)?;
 
         let exe_path = self.exe_path(id);
         let status = Command::new(exe_path).args(args).group_status().unwrap();
@@ -99,42 +100,27 @@ impl ToolStorage {
         Ok(())
     }
 
+    /// Install all tools from all reachable manifest files.
+    pub fn install_all(&self, trust: TrustMode) -> anyhow::Result<()> {
+        let current_dir = current_dir().context("Failed to get current working directory")?;
+        let manifests = Manifest::discover(&current_dir)?;
+
+        for manifest in manifests {
+            for (alias, tool_id) in manifest.tools {
+                self.install_exact(&tool_id, trust)?;
+                self.link(&alias)?;
+            }
+        }
+
+        Ok(())
+    }
+
     /// Ensure a tool that matches the given spec is installed.
-    fn install_inexact(&self, spec: &ToolSpec) -> anyhow::Result<ToolId> {
+    fn install_inexact(&self, spec: &ToolSpec, trust: TrustMode) -> anyhow::Result<ToolId> {
         let installed_path = self.storage_dir.join("installed.txt");
         let installed = InstalledToolsCache::read(&installed_path)?;
 
-        let trusted_path = self.storage_dir.join("trusted.txt");
-        let trusted = TrustCache::read(&trusted_path)?;
-        let is_trusted = trusted.tools.contains(spec.name());
-
-        if !is_trusted {
-            if atty::isnt(atty::Stream::Stderr) {
-                bail!(
-                    "Tool {} has never been installed and is not a trusted tool. \
-                     Run `aftman add {}` in your terminal to install it and trust this tool.",
-                    spec.name(),
-                    spec
-                );
-            }
-
-            let proceed = dialoguer::Confirm::new()
-                .with_prompt(format!(
-                    "Tool {} has never been installed before. Trust this tool?",
-                    spec.name()
-                ))
-                .interact_opt()?;
-
-            if let Some(false) | None = proceed {
-                eprintln!(
-                    "Skipping installation of {} and exiting with an error.",
-                    spec
-                );
-                std::process::exit(1);
-            }
-
-            TrustCache::add(&trusted_path, spec.name().clone())?;
-        }
+        self.trust_check(spec.name(), trust)?;
 
         log::info!("Installing tool: {}", spec);
 
@@ -203,7 +189,7 @@ impl ToolStorage {
     }
 
     /// Ensure a tool with the given tool ID is installed.
-    fn install_exact(&self, id: &ToolId) -> anyhow::Result<()> {
+    fn install_exact(&self, id: &ToolId, trust: TrustMode) -> anyhow::Result<()> {
         let installed_path = self.storage_dir.join("installed.txt");
         let installed = InstalledToolsCache::read(&installed_path)?;
         let is_installed = installed.tools.contains(id);
@@ -211,6 +197,8 @@ impl ToolStorage {
         if is_installed {
             return Ok(());
         }
+
+        self.trust_check(id.name(), trust)?;
 
         log::info!("Installing tool: {id}");
 
@@ -291,6 +279,46 @@ impl ToolStorage {
             })
             .cloned()
             .collect()
+    }
+
+    fn trust_check(&self, name: &ToolName, mode: TrustMode) -> anyhow::Result<()> {
+        let trusted_path = self.storage_dir.join("trusted.txt");
+        let trusted = TrustCache::read(&trusted_path)?;
+        let is_trusted = trusted.tools.contains(name);
+
+        if !is_trusted {
+            if mode == TrustMode::Check {
+                // If the terminal isn't interactive, tell the user that they
+                // need to open an interactive terminal to trust this tool.
+                if atty::isnt(atty::Stream::Stderr) {
+                    bail!(
+                        "Tool {name} has never been installed. \
+                         Run `aftman add {name}` in your terminal to install it and trust this tool.",
+                    );
+                }
+
+                // Since the terminal is interactive, ask the user if they're
+                // sure they want to install this tool.
+                let proceed = dialoguer::Confirm::new()
+                    .with_prompt(format!(
+                        "Tool {} has never been installed before. Install it?",
+                        name
+                    ))
+                    .interact_opt()?;
+
+                if let Some(false) | None = proceed {
+                    eprintln!(
+                        "Skipping installation of {} and exiting with an error.",
+                        name
+                    );
+                    std::process::exit(1);
+                }
+            }
+
+            TrustCache::add(&trusted_path, name.clone())?;
+        }
+
+        Ok(())
     }
 
     fn install_artifact(&self, id: &ToolId, artifact: impl Read + Seek) -> anyhow::Result<()> {
