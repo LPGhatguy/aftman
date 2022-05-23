@@ -119,10 +119,12 @@ aftman add rojo-rbx/rojo@6.2.0 rojo6
 Usage:
 
 ```bash
-aftman install
+aftman install [--no-trust-check]
 ```
 
 Install all tools listed in `aftman.toml` files based on your current directory.
+
+If `--no-trust-check` is given, all tools will be installed, regardless of whether they are known. This should generally only be used in CI environments. To trust a specific tool before running `aftman install`, use `aftman trust <tool>` instead.
 
 ### `aftman self-install`
 Usage:
