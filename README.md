@@ -171,3 +171,6 @@ I'm hoping to fix some of the core design mistakes I made in Foreman and also ta
 [Roblox/foreman#11]: https://github.com/Roblox/foreman/issues/11
 [Roblox/foreman#16]: https://github.com/Roblox/foreman/issues/16
 [Roblox/foreman#18]: https://github.com/Roblox/foreman/issues/18
+
+## License
+Aftman is available under the terms of the MIT license. See <https://opensource.org/licenses/MIT> or [LICENSE](LICENSE) for details.
