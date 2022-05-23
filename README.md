@@ -8,7 +8,15 @@ To install Aftman, you can build it from source using Rust 1.60.0 or newer:
 cargo install --git https://github.com/LPGhatguy/aftman
 ```
 
-Once installed, you should add Aftman's bin directory to your system `PATH` environment variable.
+On Windows, you should then run
+
+```bash
+aftman self-install
+```
+
+This will install Aftman to its own bin directory and update the `PATH` environment variable for you.
+
+On other platforms, you'll need to add Aftman's bin directory to your system `PATH`:
 
 - On Windows: `%USERPROFILE%\.aftman\bin`
 - On Linux or macOS: `~/.aftman/bin`
