@@ -1,14 +1,7 @@
-## Changes Since $PROJECT_NAME $PREV_VERSION
+## Changes Since Aftman $PREV_VERSION
 $CHANGELOG
 
-## Upgrading $PROJECT_NAME
-
-### Self-Upgrading With Aftman
-Aftman can upgrade itself by using `aftman add`:
-
-```bash
-aftman add --global LPGhatguy/aftman
-```
+## Upgrading Aftman
 
 ### From GitHub Release
 Download one of the attached binaries on this release page!

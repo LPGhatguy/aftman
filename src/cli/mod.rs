@@ -1,7 +1,7 @@
 use std::env::current_dir;
 use std::path::PathBuf;
 
-use anyhow::Context;
+use anyhow::{bail, Context};
 use structopt::StructOpt;
 
 use crate::manifest::Manifest;
@@ -21,12 +21,14 @@ impl Args {
     pub fn run(self, tools: ToolStorage) -> anyhow::Result<()> {
         match self.subcommand {
             Subcommand::Init(sub) => sub.run(),
-            Subcommand::List(_) => todo!(),
             Subcommand::Add(sub) => sub.run(tools),
-            Subcommand::Update(_) => todo!(),
             Subcommand::Install(sub) => sub.run(tools),
-            Subcommand::SelfInstall(sub) => sub.run(tools),
             Subcommand::Trust(sub) => sub.run(tools),
+            Subcommand::SelfInstall(sub) => sub.run(tools),
+
+            Subcommand::List(_) => bail!("This command is not yet implemented."),
+            Subcommand::Update(_) => bail!("This command is not yet implemented."),
+            Subcommand::SelfUpdate(sub) => bail!("This command is not yet implemented."),
         }
     }
 }
@@ -38,8 +40,9 @@ pub enum Subcommand {
     Add(AddSubcommand),
     Update(UpdateSubcommand),
     Install(InstallSubcommand),
-    SelfInstall(SelfInstallSubcommand),
     Trust(TrustSubcommand),
+    SelfUpdate(SelfUpdateSubcommand),
+    SelfInstall(SelfInstallSubcommand),
 }
 
 /// Initialize a new Aftman manifest file.
@@ -130,26 +133,6 @@ impl InstallSubcommand {
     }
 }
 
-/// Update all aliases to Aftman. Run this after Aftman has been upgraded.
-#[derive(Debug, StructOpt)]
-pub struct SelfInstallSubcommand {}
-
-impl SelfInstallSubcommand {
-    pub fn run(self, tools: ToolStorage) -> anyhow::Result<()> {
-        tools.update_links()?;
-
-        if crate::system_path::add(&tools.bin_dir)? {
-            log::info!(
-                "Added ~/.aftman/bin to your PATH. Restart your terminal for this to take effect."
-            );
-        } else {
-            log::debug!("Did not modify PATH.");
-        }
-
-        Ok(())
-    }
-}
-
 /// Mark the given tool name as being trusted.
 #[derive(Debug, StructOpt)]
 pub struct TrustSubcommand {
@@ -165,6 +148,27 @@ impl TrustSubcommand {
             log::info!("Added {} to the set of trusted tools.", self.name);
         } else {
             log::info!("{} was already a trusted tool.", self.name);
+        }
+
+        Ok(())
+    }
+}
+
+/// Install Aftman and update all references to it. Run this command if you've
+/// just upgraded Aftman manually.
+#[derive(Debug, StructOpt)]
+pub struct SelfInstallSubcommand {}
+
+impl SelfInstallSubcommand {
+    pub fn run(self, tools: ToolStorage) -> anyhow::Result<()> {
+        tools.update_links()?;
+
+        if crate::system_path::add(&tools.bin_dir)? {
+            log::info!(
+                "Added ~/.aftman/bin to your PATH. Restart your terminal for this to take effect."
+            );
+        } else {
+            log::debug!("Did not modify PATH.");
         }
 
         Ok(())
