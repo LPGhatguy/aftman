@@ -28,7 +28,7 @@ impl Args {
 
             Subcommand::List(_) => bail!("This command is not yet implemented."),
             Subcommand::Update(_) => bail!("This command is not yet implemented."),
-            Subcommand::SelfUpdate(sub) => bail!("This command is not yet implemented."),
+            Subcommand::SelfUpdate(_) => bail!("This command is not yet implemented."),
         }
     }
 }
@@ -153,6 +153,10 @@ impl TrustSubcommand {
         Ok(())
     }
 }
+
+/// Update Aftman from the internet.
+#[derive(Debug, StructOpt)]
+pub struct SelfUpdateSubcommand {}
 
 /// Install Aftman and update all references to it. Run this command if you've
 /// just upgraded Aftman manually.

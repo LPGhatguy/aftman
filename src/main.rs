@@ -1,5 +1,6 @@
 mod cli;
 mod config;
+mod home;
 mod ident;
 mod manifest;
 mod system_path;
@@ -17,16 +18,18 @@ use anyhow::{bail, format_err, Context};
 use structopt::StructOpt;
 
 use crate::cli::Args;
+use crate::home::Home;
 use crate::manifest::Manifest;
 use crate::tool_storage::ToolStorage;
 
 fn run() -> anyhow::Result<()> {
-    let tool_storage = ToolStorage::init()?;
+    let home = Home::from_env()?;
+    let tool_storage = ToolStorage::new(&home)?;
     let exe_name = current_exe_name()?;
 
     if exe_name != "aftman" {
         let start_dir = current_dir().context("Failed to find current working directory")?;
-        let manifests = Manifest::discover(&start_dir)?;
+        let manifests = Manifest::discover(&home, &start_dir)?;
 
         for manifest in &manifests {
             if let Some(tool_id) = manifest.tools.get(exe_name.as_str()) {
@@ -57,7 +60,7 @@ fn run() -> anyhow::Result<()> {
         }
     }
 
-    Manifest::init_global()?;
+    Manifest::init_global(&home)?;
 
     Args::from_args().run(tool_storage)
 }

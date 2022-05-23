@@ -6,7 +6,8 @@ use anyhow::{bail, format_err, Context};
 use serde::{Deserialize, Serialize};
 use toml_edit::Document;
 
-use crate::config::{config_dir, write_if_not_exists, write_only_new};
+use crate::config::{write_if_not_exists, write_only_new};
+use crate::home::Home;
 use crate::tool_alias::ToolAlias;
 use crate::tool_id::ToolId;
 
@@ -32,8 +33,8 @@ pub struct Manifest {
 
 impl Manifest {
     /// Create an empty global Aftman manifest if there isn't one already.
-    pub fn init_global() -> anyhow::Result<()> {
-        let base_dir = config_dir()?;
+    pub fn init_global(home: &Home) -> anyhow::Result<()> {
+        let base_dir = home.path();
         fs_err::create_dir_all(&base_dir)?;
 
         let manifest_path = base_dir.join(MANIFEST_FILE_NAME);
@@ -51,7 +52,7 @@ impl Manifest {
 
     /// Find and load all manifests from the current directory, sorted in
     /// priority order.
-    pub fn discover(mut current_dir: &Path) -> anyhow::Result<Vec<Manifest>> {
+    pub fn discover(home: &Home, mut current_dir: &Path) -> anyhow::Result<Vec<Manifest>> {
         let mut manifests = Vec::new();
 
         // Starting in the current directory, find every manifest file,
@@ -69,8 +70,7 @@ impl Manifest {
 
         // We'll also load the user's global config, usually from
         // ~/.aftman/aftman.toml.
-        let global_dir = config_dir()?;
-        if let Some(manifest) = Self::load_from_dir(&global_dir)? {
+        if let Some(manifest) = Self::load_from_dir(home.path())? {
             manifests.push(manifest);
         }
 
@@ -103,6 +103,7 @@ impl Manifest {
 
     /// Add the given alias and tool ID to the nearest manifest file.
     pub fn add_local_tool(
+        home: &Home,
         mut current_dir: &Path,
         alias: &ToolAlias,
         id: &ToolId,
@@ -125,11 +126,7 @@ impl Manifest {
 
         let manifest_path = match manifest_path {
             Some(v) => v,
-            None => {
-                let mut path = config_dir()?;
-                path.push(MANIFEST_FILE_NAME);
-                path
-            }
+            None => home.path().join(MANIFEST_FILE_NAME),
         };
 
         Self::add_tool(&manifest_path, alias, id)?;
@@ -137,10 +134,8 @@ impl Manifest {
         Ok(())
     }
 
-    pub fn add_global_tool(alias: &ToolAlias, id: &ToolId) -> anyhow::Result<()> {
-        let mut manifest_path = config_dir()?;
-        manifest_path.push(MANIFEST_FILE_NAME);
-
+    pub fn add_global_tool(home: &Home, alias: &ToolAlias, id: &ToolId) -> anyhow::Result<()> {
+        let manifest_path = home.path().join(MANIFEST_FILE_NAME);
         Self::add_tool(&manifest_path, alias, id)?;
 
         Ok(())

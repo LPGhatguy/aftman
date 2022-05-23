@@ -13,7 +13,7 @@ use command_group::CommandGroup;
 use fs_err::File;
 use once_cell::unsync::OnceCell;
 
-use crate::config::config_dir;
+use crate::home::Home;
 use crate::manifest::Manifest;
 use crate::tool_alias::ToolAlias;
 use crate::tool_id::ToolId;
@@ -25,22 +25,22 @@ use crate::trust::{TrustCache, TrustMode};
 pub struct ToolStorage {
     pub storage_dir: PathBuf,
     pub bin_dir: PathBuf,
+    home: Home,
     github: OnceCell<GitHubSource>,
 }
 
 impl ToolStorage {
-    pub fn init() -> anyhow::Result<Self> {
-        let base_dir = config_dir()?;
-
-        let storage_dir = base_dir.join("tool-storage");
+    pub fn new(home: &Home) -> anyhow::Result<Self> {
+        let storage_dir = home.path().join("tool-storage");
         fs_err::create_dir_all(&storage_dir)?;
 
-        let bin_dir = base_dir.join("bin");
+        let bin_dir = home.path().join("bin");
         fs_err::create_dir_all(&bin_dir)?;
 
         Ok(Self {
             storage_dir,
             bin_dir,
+            home: home.clone(),
             github: OnceCell::new(),
         })
     }
@@ -62,9 +62,9 @@ impl ToolStorage {
         self.link(&alias)?;
 
         if global {
-            Manifest::add_global_tool(&alias, &id)?;
+            Manifest::add_global_tool(&self.home, &alias, &id)?;
         } else {
-            Manifest::add_local_tool(&current_dir, &alias, &id)?;
+            Manifest::add_local_tool(&self.home, &current_dir, &alias, &id)?;
         }
 
         Ok(())
@@ -103,7 +103,7 @@ impl ToolStorage {
     /// Install all tools from all reachable manifest files.
     pub fn install_all(&self, trust: TrustMode) -> anyhow::Result<()> {
         let current_dir = current_dir().context("Failed to get current working directory")?;
-        let manifests = Manifest::discover(&current_dir)?;
+        let manifests = Manifest::discover(&self.home, &current_dir)?;
 
         for manifest in manifests {
             for (alias, tool_id) in manifest.tools {

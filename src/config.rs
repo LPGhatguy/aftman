@@ -1,16 +1,8 @@
 use std::io::{self, BufWriter, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-use anyhow::{bail, format_err};
+use anyhow::bail;
 use fs_err::OpenOptions;
-
-pub fn config_dir() -> anyhow::Result<PathBuf> {
-    let mut path =
-        dirs::home_dir().ok_or_else(|| format_err!("Home directory could not be found."))?;
-
-    path.push(".aftman");
-    Ok(path)
-}
 
 pub fn write_only_new(path: &Path, contents: &str) -> anyhow::Result<()> {
     let mut file = match OpenOptions::new().create_new(true).write(true).open(path) {
