@@ -99,7 +99,7 @@ Usage:
 aftman self-install
 ```
 
-Installs Aftman inside itself and upgrades any references to Aftman.
+Installs Aftman, upgrades any references to Aftman, and adds `aftman` to your system `PATH` if supported.
 
 Whenever you upgrade Aftman, run this command. Aftman makes copies of itself to mimic the tools it installs, and this command will ensure those copies get updated as well.
 
