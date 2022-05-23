@@ -143,7 +143,7 @@ impl SelfInstallSubcommand {
                 "Added ~/.aftman/bin to your PATH. Restart your terminal for this to take effect."
             );
         } else {
-            log::debug!("Aftman already on user PATH, did not modify PATH.");
+            log::debug!("Did not modify PATH.");
         }
 
         Ok(())
