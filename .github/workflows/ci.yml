@@ -21,8 +21,12 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Setup Rust
-      run: rustup default ${{ matrix.rust_version }}
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: ${{ matrix.rust_version }}
+        override: true
+        profile: minimal
 
     - name: Build
       run: cargo build --locked --verbose
@@ -37,8 +41,12 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Setup Rust
-      run: rustup default stable
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        components: rustfmt, clippy
 
     - name: Rustfmt
       run: cargo fmt -- --check
