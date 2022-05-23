@@ -41,11 +41,11 @@ impl GitHubSource {
         let releases: Vec<Release> = gh_releases
             .into_iter()
             .filter_map(|release| {
-                let version = release
+                let stripped = release
                     .tag_name
-                    .strip_prefix('v')?
-                    .parse::<Version>()
-                    .ok()?;
+                    .strip_prefix('v')
+                    .unwrap_or(release.tag_name.as_str());
+                let version = stripped.parse::<Version>().ok()?;
 
                 let assets = release
                     .assets
