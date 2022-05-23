@@ -13,7 +13,7 @@ pub struct Release {
     pub assets: Vec<Asset>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Asset {
     pub name: String,
     pub url: String,
@@ -116,10 +116,10 @@ impl OperatingSystem {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Architecture {
-    X86, // aka i686
-    X64, // aka x86-64, AMD64
-    Arm32,
     Arm64, // aka AArch64
+    X64,   // aka x86-64, AMD64
+    X86,   // aka i686
+    Arm32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

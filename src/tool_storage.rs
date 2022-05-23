@@ -162,7 +162,7 @@ impl ToolStorage {
                 return Ok(id);
             }
 
-            let compatible_assets = self.get_compatible_assets(&release);
+            let mut compatible_assets = self.get_compatible_assets(&release);
             if compatible_assets.is_empty() {
                 log::warn!(
                     "Version {} was compatible, but had no assets compatible with your platform.",
@@ -171,26 +171,15 @@ impl ToolStorage {
                 continue;
             }
 
-            if compatible_assets.len() > 1 {
-                let compatible_output = compatible_assets
-                    .iter()
-                    .map(|asset| format!("- {}", asset.name))
-                    .collect::<Vec<_>>()
-                    .join("\n");
-
-                bail!(
-                    "More than one compatible asset for {} v{} was found for your system. \
-                    Aftman doesn't know how to handle this yet.\n\
-                    Compatible assets:\n\
-                    {}",
-                    spec.name(),
-                    release.version,
-                    compatible_output
-                );
-            }
-
-            log::info!("Downloading {} v{}...", spec.name(), release.version);
+            self.sort_assets_by_preference(&mut compatible_assets);
             let asset = &compatible_assets[0];
+
+            log::info!(
+                "Downloading {} v{} ({})...",
+                spec.name(),
+                release.version,
+                asset.name
+            );
             let artifact = github.download_asset(&asset.url)?;
 
             self.install_artifact(&id, artifact).with_context(|| {
@@ -229,31 +218,20 @@ impl ToolStorage {
         let github = self.github.get_or_init(GitHubSource::new);
         let release = github.get_release(id)?;
 
-        let compatible_assets = self.get_compatible_assets(&release);
+        let mut compatible_assets = self.get_compatible_assets(&release);
         if compatible_assets.is_empty() {
             bail!("Tool {id} was found, but no assets were compatible with your system.");
         }
 
-        if compatible_assets.len() > 1 {
-            let compatible_output = compatible_assets
-                .iter()
-                .map(|asset| format!("- {}", asset.name))
-                .collect::<Vec<_>>()
-                .join("\n");
-
-            bail!(
-                "More than one compatible asset for {} v{} was found for your system. \
-                Aftman doesn't know how to handle this yet.\n\
-                Compatible assets:\n\
-                {}",
-                id.name(),
-                release.version,
-                compatible_output
-            );
-        }
-
-        log::info!("Downloading {} v{}...", id.name(), release.version);
+        self.sort_assets_by_preference(&mut compatible_assets);
         let asset = &compatible_assets[0];
+
+        log::info!(
+            "Downloading {} v{} ({})...",
+            id.name(),
+            release.version,
+            asset.name
+        );
         let artifact = github.download_asset(&asset.url)?;
 
         self.install_artifact(id, artifact).with_context(|| {
@@ -273,7 +251,13 @@ impl ToolStorage {
         Ok(())
     }
 
-    fn get_compatible_assets<'a>(&self, release: &'a Release) -> Vec<&'a Asset> {
+    /// Picks the best asset out of the list of assets.
+    fn sort_assets_by_preference(&self, assets: &mut Vec<Asset>) {
+        assets.sort_by(|a, b| a.arch.cmp(&b.arch).then(a.toolchain.cmp(&b.toolchain)));
+    }
+
+    /// Returns a list of compatible assets from the given release.
+    fn get_compatible_assets<'a>(&self, release: &'a Release) -> Vec<Asset> {
         // If any assets list an OS or architecture that's compatible with
         // ours, we want to make that part of our filter criteria.
         let any_has_os = release
@@ -305,6 +289,7 @@ impl ToolStorage {
 
                 true
             })
+            .cloned()
             .collect()
     }
 
@@ -312,13 +297,17 @@ impl ToolStorage {
         let output_path = self.exe_path(id);
         let expected_name = format!("{}{EXE_SUFFIX}", id.name().name());
 
+        fs_err::create_dir_all(output_path.parent().unwrap())?;
+
+        // If there is an executable with an exact name match, install that one.
         let mut zip = zip::ZipArchive::new(artifact)?;
         for i in 0..zip.len() {
             let mut file = zip.by_index(i)?;
-            if file.name() == expected_name {
-                fs_err::create_dir_all(output_path.parent().unwrap())?;
 
-                let mut output = BufWriter::new(File::create(output_path)?);
+            if file.name() == expected_name {
+                log::debug!("Installing file {} from archive...", file.name());
+
+                let mut output = BufWriter::new(File::create(&output_path)?);
                 io::copy(&mut file, &mut output)?;
                 output.flush()?;
 
@@ -326,7 +315,23 @@ impl ToolStorage {
             }
         }
 
-        bail!("executable {expected_name} not found in archive");
+        // ...otherwise, look for any file with the system's EXE_SUFFIX and
+        // install that.
+        for i in 0..zip.len() {
+            let mut file = zip.by_index(i)?;
+
+            if file.name().ends_with(EXE_SUFFIX) {
+                log::debug!("Installing file {} from archive...", file.name());
+
+                let mut output = BufWriter::new(File::create(&output_path)?);
+                io::copy(&mut file, &mut output)?;
+                output.flush()?;
+
+                return Ok(());
+            }
+        }
+
+        bail!("no executables were found in archive");
     }
 
     fn link(&self, alias: &ToolAlias) -> anyhow::Result<()> {

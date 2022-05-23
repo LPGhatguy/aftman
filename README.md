@@ -29,7 +29,7 @@ aftman add rojo-rbx/rojo
 aftman add rojo-rbx/rojo@6.2.0
 
 # install with a different binary name
-aftman add rojo-rbx/rojo@6.0.0 rojo6
+aftman add BurntSushi/ripgrep rg
 ```
 
 If your PATH is configured correctly (see [Installation](#installation)), you will now be able to run that tool from your project.
