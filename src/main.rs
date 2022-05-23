@@ -2,6 +2,7 @@ mod cli;
 mod config;
 mod ident;
 mod manifest;
+mod system_path;
 mod tool_alias;
 mod tool_id;
 mod tool_name;

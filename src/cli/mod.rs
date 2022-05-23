@@ -109,6 +109,16 @@ pub struct SelfInstallSubcommand {}
 
 impl SelfInstallSubcommand {
     pub fn run(self, tools: ToolStorage) -> anyhow::Result<()> {
-        tools.update_links()
+        tools.update_links()?;
+
+        if crate::system_path::add(&tools.bin_dir)? {
+            log::info!(
+                "Added ~/.aftman/bin to your PATH. Restart your terminal for this to take effect."
+            );
+        } else {
+            log::debug!("Aftman already on user PATH, did not modify PATH.");
+        }
+
+        Ok(())
     }
 }
