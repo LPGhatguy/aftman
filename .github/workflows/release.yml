@@ -19,8 +19,8 @@ jobs:
         with:
           tag_name: ${{ github.ref }}
           release_name: ${{ github.ref }}
-          draft: false
-          prerelease: true
+          draft: true
+          prerelease: false
 
   build:
     needs: ["create-release"]
