@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::collections::BTreeSet;
+use std::env::current_dir;
 use std::env::{consts::EXE_SUFFIX, current_exe};
 use std::fmt::Write;
 use std::io::{self, BufWriter, Read};
@@ -13,6 +14,7 @@ use fs_err::File;
 use once_cell::unsync::OnceCell;
 
 use crate::config::config_dir;
+use crate::manifest::Manifest;
 use crate::tool_alias::ToolAlias;
 use crate::tool_id::ToolId;
 use crate::tool_source::{Asset, GitHubSource, Release};
@@ -42,14 +44,28 @@ impl ToolStorage {
         })
     }
 
-    pub fn add(&self, spec: &ToolSpec, alias: Option<&ToolAlias>) -> anyhow::Result<()> {
+    pub fn add(
+        &self,
+        spec: &ToolSpec,
+        alias: Option<&ToolAlias>,
+        global: bool,
+    ) -> anyhow::Result<()> {
+        let current_dir = current_dir().context("Failed to find current working directory")?;
+
         let alias = match alias {
             Some(alias) => Cow::Borrowed(alias),
             None => Cow::Owned(ToolAlias::new(spec.name().name())?),
         };
 
-        self.install_inexact(spec)?;
+        let id = self.install_inexact(spec)?;
         self.link(&alias)?;
+
+        if global {
+            Manifest::add_global_tool(&alias, &id)?;
+        } else {
+            Manifest::add_local_tool(&current_dir, &alias, &id)?;
+        }
+
         Ok(())
     }
 
@@ -84,14 +100,9 @@ impl ToolStorage {
     }
 
     /// Ensure a tool that matches the given spec is installed.
-    fn install_inexact(&self, spec: &ToolSpec) -> anyhow::Result<()> {
+    fn install_inexact(&self, spec: &ToolSpec) -> anyhow::Result<ToolId> {
         let installed_path = self.storage_dir.join("installed.txt");
         let installed = InstalledToolsCache::read(&installed_path)?;
-        let is_installed = installed.tools.iter().any(|id| spec.matches(&id));
-
-        if is_installed {
-            return Ok(());
-        }
 
         let trusted_path = self.storage_dir.join("trusted.txt");
         let trusted = TrustCache::read(&trusted_path)?;
@@ -144,8 +155,14 @@ impl ToolStorage {
                 }
             }
 
-            let compatible_assets = self.get_compatible_assets(&release);
+            let id = ToolId::new(spec.name().clone(), release.version.clone());
 
+            if installed.tools.contains(&id) {
+                log::debug!("Tool is already installed.");
+                return Ok(id);
+            }
+
+            let compatible_assets = self.get_compatible_assets(&release);
             if compatible_assets.is_empty() {
                 log::warn!(
                     "Version {} was compatible, but had no assets compatible with your platform.",
@@ -176,7 +193,6 @@ impl ToolStorage {
             let asset = &compatible_assets[0];
             let artifact = github.download_asset(&asset.url)?;
 
-            let id = ToolId::new(spec.name().clone(), release.version.clone());
             self.install_artifact(&id, artifact).with_context(|| {
                 format!(
                     "Could not install asset {} from tool {} release v{}",
@@ -191,10 +207,10 @@ impl ToolStorage {
 
             log::info!("{} v{} installed successfully.", id.name(), release.version);
 
-            break;
+            return Ok(id);
         }
 
-        Ok(())
+        bail!("Could not find a compatible release for {spec}");
     }
 
     /// Ensure a tool with the given tool ID is installed.

@@ -16,7 +16,7 @@ impl Args {
             Subcommand::List(_) => todo!(),
             Subcommand::Add(sub) => sub.run(tools),
             Subcommand::Update(_) => todo!(),
-            Subcommand::SelfUpdate(sub) => sub.run(tools),
+            Subcommand::SelfInstall(sub) => sub.run(tools),
         }
     }
 }
@@ -26,7 +26,7 @@ pub enum Subcommand {
     List(ListSubcommand),
     Add(AddSubcommand),
     Update(UpdateSubcommand),
-    SelfUpdate(SelfUpdateSubcommand),
+    SelfInstall(SelfInstallSubcommand),
 }
 
 /// Lists all existing tools managed by Aftman.
@@ -42,11 +42,16 @@ pub struct AddSubcommand {
 
     /// The name that will be used to run the tool.
     pub tool_alias: Option<ToolAlias>,
+
+    /// Install this tool globally by adding it to ~/.aftman/aftman.toml instead
+    /// of installing it to the nearest aftman.toml file.
+    #[structopt(long)]
+    pub global: bool,
 }
 
 impl AddSubcommand {
     pub fn run(self, tools: ToolStorage) -> anyhow::Result<()> {
-        tools.add(&self.tool_spec, self.tool_alias.as_ref())
+        tools.add(&self.tool_spec, self.tool_alias.as_ref(), self.global)
     }
 }
 
@@ -67,9 +72,9 @@ pub struct UpdateSubcommand {
 
 /// Update all aliases to Aftman. Run this after Aftman has been upgraded.
 #[derive(Debug, StructOpt)]
-pub struct SelfUpdateSubcommand {}
+pub struct SelfInstallSubcommand {}
 
-impl SelfUpdateSubcommand {
+impl SelfInstallSubcommand {
     pub fn run(self, tools: ToolStorage) -> anyhow::Result<()> {
         tools.update_links()
     }

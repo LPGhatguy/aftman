@@ -50,9 +50,9 @@ fn run() -> anyhow::Result<()> {
                 .collect::<Vec<_>>()
                 .join("\n");
 
-            bail!("Tried to run an Aftman-managed version of {}, but no aftman.toml files list this tool.\n\
-                To run {} from this directory, add it to one of these files:\n\
-                {}", exe_name, exe_name, manifest_list);
+            bail!("Tried to run an Aftman-managed version of {exe_name}, but no aftman.toml files list this tool.\n\
+                To run {exe_name} from this directory, add it to one of these files:\n\
+                {manifest_list}");
         }
     }
 

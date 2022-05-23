@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{bail, format_err, Context};
 use serde::{Deserialize, Serialize};
+use toml_edit::Document;
 
 use crate::config::{config_dir, write_if_not_exists};
 use crate::tool_alias::ToolAlias;
@@ -91,5 +92,65 @@ impl Manifest {
         manifest.path = Some(file_path);
 
         Ok(Some(manifest))
+    }
+
+    /// Add the given alias and tool ID to the nearest manifest file.
+    pub fn add_local_tool(
+        mut current_dir: &Path,
+        alias: &ToolAlias,
+        id: &ToolId,
+    ) -> anyhow::Result<()> {
+        // Starting in the current directory, find every manifest file,
+        // prioritizing manifests that are closer to our current dir.
+        let mut manifest_path = None;
+        loop {
+            let file_path = current_dir.join(MANIFEST_FILE_NAME);
+            if file_path.is_file() {
+                manifest_path = Some(file_path);
+                break;
+            }
+
+            match current_dir.parent() {
+                Some(parent) => current_dir = parent,
+                None => break,
+            }
+        }
+
+        let manifest_path = match manifest_path {
+            Some(v) => v,
+            None => {
+                let mut path = config_dir()?;
+                path.push(MANIFEST_FILE_NAME);
+                path
+            }
+        };
+
+        Self::add_tool(&manifest_path, alias, id)?;
+
+        Ok(())
+    }
+
+    pub fn add_global_tool(alias: &ToolAlias, id: &ToolId) -> anyhow::Result<()> {
+        let mut manifest_path = config_dir()?;
+        manifest_path.push(MANIFEST_FILE_NAME);
+
+        Self::add_tool(&manifest_path, alias, id)?;
+
+        Ok(())
+    }
+
+    fn add_tool(manifest_path: &Path, alias: &ToolAlias, id: &ToolId) -> anyhow::Result<()> {
+        let content = fs_err::read_to_string(manifest_path)?;
+        let mut document: Document = content.parse()?;
+        document["tools"][alias.as_ref()] = toml_edit::value(id.to_string());
+
+        fs_err::write(manifest_path, document.to_string())?;
+
+        log::info!(
+            "Tool {alias} = {id} has been added to {}",
+            manifest_path.display()
+        );
+
+        Ok(())
     }
 }

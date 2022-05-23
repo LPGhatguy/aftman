@@ -1,5 +1,5 @@
-use std::borrow::Borrow;
 use std::str::FromStr;
+use std::{borrow::Borrow, fmt};
 
 use serde::{Deserialize, Serialize};
 
@@ -29,6 +29,12 @@ impl FromStr for ToolAlias {
 
     fn from_str(value: &str) -> anyhow::Result<Self> {
         ToolAlias::new(value)
+    }
+}
+
+impl fmt::Display for ToolAlias {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.name.fmt(f)
     }
 }
 
