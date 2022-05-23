@@ -19,7 +19,7 @@ rojo = "rojo-rbx/rojo@7.1.0"
 ```
 
 ## Installation
-You can install Aftman from crates.io using Rust 1.56.0 or newer:
+You can install Aftman from crates.io using Rust 1.58.0 or newer:
 
 ```bash
 cargo install aftman
