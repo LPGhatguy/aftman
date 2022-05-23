@@ -2,8 +2,8 @@ use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::env::{consts::EXE_SUFFIX, current_exe};
 use std::fmt::Write;
-use std::io::Write as _;
-use std::io::{self, BufWriter};
+use std::io::{self, BufWriter, Read};
+use std::io::{Seek, Write as _};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -15,7 +15,7 @@ use once_cell::unsync::OnceCell;
 use crate::config::config_dir;
 use crate::tool_alias::ToolAlias;
 use crate::tool_id::ToolId;
-use crate::tool_source::GitHubSource;
+use crate::tool_source::{Asset, GitHubSource, Release};
 use crate::tool_spec::ToolSpec;
 use crate::trust::TrustCache;
 
@@ -66,6 +66,8 @@ impl ToolStorage {
         let self_path =
             current_exe().context("Failed to discover path to the Aftman executable")?;
 
+        log::info!("Updating all Aftman binaries...");
+
         for entry in fs_err::read_dir(&self.bin_dir)? {
             let entry = entry?;
             let path = entry.path();
@@ -75,6 +77,8 @@ impl ToolStorage {
 
         let aftman_path = self.bin_dir.join(format!("aftman{}", EXE_SUFFIX));
         fs_err::copy(&self_path, aftman_path)?;
+
+        log::info!("Updated Aftman binaries successfully!");
 
         Ok(())
     }
@@ -140,38 +144,7 @@ impl ToolStorage {
                 }
             }
 
-            // If any assets list an OS or architecture that's compatible with
-            // ours, we want to make that part of our filter criteria.
-            let any_has_os = release
-                .assets
-                .iter()
-                .any(|asset| asset.os.map(|os| os.compatible()).unwrap_or(false));
-            let any_has_arch = release
-                .assets
-                .iter()
-                .any(|asset| asset.arch.is_some() && asset.compatible());
-
-            let compatible_assets: Vec<_> = release
-                .assets
-                .iter()
-                .filter(|asset| {
-                    // If any release has an OS that matched, filter out any
-                    // releases that don't match.
-                    let compatible_os = asset.os.map(|os| os.compatible()).unwrap_or(false);
-                    if any_has_os && !compatible_os {
-                        return false;
-                    }
-
-                    // If any release has an OS and an architecture that matched
-                    // our platform, filter out any releases that don't match.
-                    let compatible = asset.compatible();
-                    if any_has_os && any_has_arch && !compatible {
-                        return false;
-                    }
-
-                    true
-                })
-                .collect();
+            let compatible_assets = self.get_compatible_assets(&release);
 
             if compatible_assets.is_empty() {
                 log::warn!(
@@ -199,42 +172,26 @@ impl ToolStorage {
                 );
             }
 
-            log::debug!("Extracting archive...");
-
-            let id = ToolId::new(spec.name().clone(), release.version.clone());
-            let output_path = self.exe_path(&id);
-
+            log::info!("Downloading {} v{}...", spec.name(), release.version);
             let asset = &compatible_assets[0];
             let artifact = github.download_asset(&asset.url)?;
-            let expected_name = format!("{}{}", spec.name().name(), EXE_SUFFIX);
 
-            let mut zip = zip::ZipArchive::new(artifact)?;
-            for i in 0..zip.len() {
-                let mut file = zip.by_index(i)?;
-                if file.name() == expected_name {
-                    fs_err::create_dir_all(output_path.parent().unwrap())?;
+            let id = ToolId::new(spec.name().clone(), release.version.clone());
+            self.install_artifact(&id, artifact).with_context(|| {
+                format!(
+                    "Could not install asset {} from tool {} release v{}",
+                    asset.name,
+                    id.name(),
+                    release.version
+                )
+            })?;
 
-                    let mut output = BufWriter::new(File::create(output_path)?);
-                    io::copy(&mut file, &mut output)?;
-                    output.flush()?;
+            InstalledToolsCache::add(&installed_path, &id)
+                .context("Could not write installed tools cache file")?;
 
-                    log::info!(
-                        "{} v{} installed successfully.",
-                        spec.name(),
-                        release.version
-                    );
+            log::info!("{} v{} installed successfully.", id.name(), release.version);
 
-                    return Ok(());
-                }
-            }
-
-            bail!(
-                "Could not find executable {} in asset {} for tool {} v{}",
-                expected_name,
-                asset.name,
-                spec.name(),
-                release.version
-            );
+            break;
         }
 
         Ok(())
@@ -242,12 +199,118 @@ impl ToolStorage {
 
     /// Ensure a tool with the given tool ID is installed.
     fn install_exact(&self, id: &ToolId) -> anyhow::Result<()> {
-        let exe_path = self.exe_path(id);
-        if exe_path.exists() {
+        let installed_path = self.storage_dir.join("installed.txt");
+        let installed = InstalledToolsCache::read(&installed_path)?;
+        let is_installed = installed.tools.contains(id);
+
+        if is_installed {
             return Ok(());
         }
 
-        todo!("actually install this tool: {}", id);
+        log::info!("Installing tool: {id}");
+
+        log::debug!("Fetching GitHub release...");
+        let github = self.github.get_or_init(GitHubSource::new);
+        let release = github.get_release(id)?;
+
+        let compatible_assets = self.get_compatible_assets(&release);
+        if compatible_assets.is_empty() {
+            bail!("Tool {id} was found, but no assets were compatible with your system.");
+        }
+
+        if compatible_assets.len() > 1 {
+            let compatible_output = compatible_assets
+                .iter()
+                .map(|asset| format!("- {}", asset.name))
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            bail!(
+                "More than one compatible asset for {} v{} was found for your system. \
+                Aftman doesn't know how to handle this yet.\n\
+                Compatible assets:\n\
+                {}",
+                id.name(),
+                release.version,
+                compatible_output
+            );
+        }
+
+        log::info!("Downloading {} v{}...", id.name(), release.version);
+        let asset = &compatible_assets[0];
+        let artifact = github.download_asset(&asset.url)?;
+
+        self.install_artifact(id, artifact).with_context(|| {
+            format!(
+                "Could not install asset {} from tool {} release v{}",
+                asset.name,
+                id.name(),
+                release.version
+            )
+        })?;
+
+        InstalledToolsCache::add(&installed_path, id)
+            .context("Could not write installed tools cache file")?;
+
+        log::info!("{} v{} installed successfully.", id.name(), release.version);
+
+        Ok(())
+    }
+
+    fn get_compatible_assets<'a>(&self, release: &'a Release) -> Vec<&'a Asset> {
+        // If any assets list an OS or architecture that's compatible with
+        // ours, we want to make that part of our filter criteria.
+        let any_has_os = release
+            .assets
+            .iter()
+            .any(|asset| asset.os.map(|os| os.compatible()).unwrap_or(false));
+        let any_has_arch = release
+            .assets
+            .iter()
+            .any(|asset| asset.arch.is_some() && asset.compatible());
+
+        release
+            .assets
+            .iter()
+            .filter(|asset| {
+                // If any release has an OS that matched, filter out any
+                // releases that don't match.
+                let compatible_os = asset.os.map(|os| os.compatible()).unwrap_or(false);
+                if any_has_os && !compatible_os {
+                    return false;
+                }
+
+                // If any release has an OS and an architecture that matched
+                // our platform, filter out any releases that don't match.
+                let compatible = asset.compatible();
+                if any_has_os && any_has_arch && !compatible {
+                    return false;
+                }
+
+                true
+            })
+            .collect()
+    }
+
+    fn install_artifact(&self, id: &ToolId, artifact: impl Read + Seek) -> anyhow::Result<()> {
+        let output_path = self.exe_path(id);
+        let expected_name = format!("{}{EXE_SUFFIX}", id.name().name());
+
+        let mut zip = zip::ZipArchive::new(artifact)?;
+        for i in 0..zip.len() {
+            let mut file = zip.by_index(i)?;
+            if file.name() == expected_name {
+                fs_err::create_dir_all(output_path.parent().unwrap())?;
+
+                let mut output = BufWriter::new(File::create(output_path)?);
+                io::copy(&mut file, &mut output)?;
+                output.flush()?;
+
+                return Ok(());
+            }
+        }
+
+        bail!("executable {expected_name} not found in archive");
     }
 
     fn link(&self, alias: &ToolAlias) -> anyhow::Result<()> {
@@ -271,6 +334,7 @@ impl ToolStorage {
     }
 }
 
+#[derive(Debug)]
 pub struct InstalledToolsCache {
     pub tools: BTreeSet<ToolId>,
 }
@@ -296,9 +360,9 @@ impl InstalledToolsCache {
         Ok(Self { tools })
     }
 
-    pub fn add(path: &Path, id: ToolId) -> anyhow::Result<()> {
+    pub fn add(path: &Path, id: &ToolId) -> anyhow::Result<()> {
         let mut cache = Self::read(path)?;
-        cache.tools.insert(id);
+        cache.tools.insert(id.clone());
 
         let mut output = String::new();
         for tool in cache.tools {

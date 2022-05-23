@@ -8,7 +8,7 @@ use serde::ser::{Serialize, Serializer};
 
 use crate::tool_name::ToolName;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ToolId {
     name: ToolName,
     version: Version,

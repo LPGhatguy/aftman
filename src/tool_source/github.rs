@@ -65,16 +65,16 @@ impl GitHubSource {
         Ok(releases)
     }
 
-    pub fn get_release(&self, spec: &ToolId) -> anyhow::Result<Release> {
+    pub fn get_release(&self, id: &ToolId) -> anyhow::Result<Release> {
         // TODO: Better implementation using individual release API instead of
         // using the release list API.
 
-        let releases = self.get_all_releases(spec.name())?;
+        let releases = self.get_all_releases(id.name())?;
 
         releases
             .into_iter()
-            .find(|release| &release.version == spec.version())
-            .with_context(|| format!("Could not find release {}", spec))
+            .find(|release| &release.version == id.version())
+            .with_context(|| format!("Could not find release {}", id))
     }
 
     pub fn download_asset(&self, url: &str) -> anyhow::Result<impl Read + Seek> {
