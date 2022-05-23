@@ -1,5 +1,10 @@
+use std::env::current_dir;
+use std::path::PathBuf;
+
+use anyhow::Context;
 use structopt::StructOpt;
 
+use crate::manifest::Manifest;
 use crate::tool_alias::ToolAlias;
 use crate::tool_spec::ToolSpec;
 use crate::tool_storage::ToolStorage;
@@ -13,6 +18,7 @@ pub struct Args {
 impl Args {
     pub fn run(self, tools: ToolStorage) -> anyhow::Result<()> {
         match self.subcommand {
+            Subcommand::Init(sub) => sub.run(),
             Subcommand::List(_) => todo!(),
             Subcommand::Add(sub) => sub.run(tools),
             Subcommand::Update(_) => todo!(),
@@ -23,10 +29,32 @@ impl Args {
 
 #[derive(Debug, StructOpt)]
 pub enum Subcommand {
+    Init(InitSubcommand),
     List(ListSubcommand),
     Add(AddSubcommand),
     Update(UpdateSubcommand),
     SelfInstall(SelfInstallSubcommand),
+}
+
+/// Initialize a new Aftman manifest file.
+#[derive(Debug, StructOpt)]
+pub struct InitSubcommand {
+    /// The folder to initialize the manifest file in. Defaults to the current
+    /// directory.
+    pub path: Option<PathBuf>,
+}
+
+impl InitSubcommand {
+    pub fn run(self) -> anyhow::Result<()> {
+        let path = match self.path {
+            Some(v) => v,
+            None => current_dir().context("Could not read current directory")?,
+        };
+
+        Manifest::init_local(&path)?;
+
+        Ok(())
+    }
 }
 
 /// Lists all existing tools managed by Aftman.
@@ -64,6 +92,11 @@ impl AddSubcommand {
 pub struct UpdateSubcommand {
     /// One or more tools to update. If no tools are given, update all tools.
     pub aliases_or_specs: Vec<String>,
+
+    /// Update this tool globally by adding it to ~/.aftman/aftman.toml instead
+    /// of installing it to the nearest aftman.toml file that mentions it.
+    #[structopt(long)]
+    pub global: bool,
 
     /// Ignore semantic versioning and upgrade to the latest stable versions.
     #[structopt(long)]

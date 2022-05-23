@@ -6,18 +6,18 @@ use anyhow::{bail, format_err, Context};
 use serde::{Deserialize, Serialize};
 use toml_edit::Document;
 
-use crate::config::{config_dir, write_if_not_exists};
+use crate::config::{config_dir, write_if_not_exists, write_only_new};
 use crate::tool_alias::ToolAlias;
 use crate::tool_id::ToolId;
 
 pub static MANIFEST_FILE_NAME: &str = "aftman.toml";
 
-static DEFAULT_GLOBAL_MANIFEST: &str = r#"
+static DEFAULT_MANIFEST: &str = r#"
 # This file lists tools managed by Aftman, a cross-platform toolchain manager.
 # For more information, see https://github.com/LPGhatguy/aftman
 
-[tools]
 # To add a new tool, add an entry to this table.
+[tools]
 # rojo = "rojo-rbx/rojo@6.2.0"
 "#;
 
@@ -37,7 +37,14 @@ impl Manifest {
         fs_err::create_dir_all(&base_dir)?;
 
         let manifest_path = base_dir.join(MANIFEST_FILE_NAME);
-        write_if_not_exists(&manifest_path, DEFAULT_GLOBAL_MANIFEST.trim())?;
+        write_if_not_exists(&manifest_path, DEFAULT_MANIFEST.trim())?;
+
+        Ok(())
+    }
+
+    pub fn init_local(base_dir: &Path) -> anyhow::Result<()> {
+        let manifest_path = base_dir.join(MANIFEST_FILE_NAME);
+        write_only_new(&manifest_path, DEFAULT_MANIFEST.trim())?;
 
         Ok(())
     }

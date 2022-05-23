@@ -28,6 +28,7 @@ impl ToolSpec {
         self.version.as_ref()
     }
 
+    #[allow(unused)]
     pub fn matches(&self, id: &ToolId) -> bool {
         if self.name() != id.name() {
             return false;
