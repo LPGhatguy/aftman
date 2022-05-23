@@ -1,10 +1,11 @@
 [package]
 name = "aftman"
-description = "Aftman, the prodigal sequel to Foreman"
-license = "MIT"
+description = "Aftman is a command line toolchain manager"
 version = "0.1.0"
-edition = "2018"
+license = "MIT"
+edition = "2021"
 repository = "https://github.com/LPGhatguy/aftman"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

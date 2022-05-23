@@ -1,5 +1,22 @@
 # Aftman
-Aftman is a toolchain manager. It lets you install command line tools 
+Aftman is a toolchain manager. It enables installing project-specific command line tools and switching between them seamlessly.
+
+```bash
+$ rojo --version
+Rojo 6.2.0
+
+$ cat ~/.aftman/aftman.toml
+[tools]
+rojo = "rojo-rbx/rojo@6.2.0"
+
+$ cd uses-rojo-7
+$ rojo --version
+Rojo 7.1.0
+
+$ cat aftman.toml
+[tools]
+rojo = "rojo-rbx/rojo@7.1.0" 
+```
 
 ## Installation
 To install Aftman, you can build it from source using Rust 1.60.0 or newer:
