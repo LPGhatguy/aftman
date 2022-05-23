@@ -19,10 +19,10 @@ rojo = "rojo-rbx/rojo@7.1.0"
 ```
 
 ## Installation
-To install Aftman, you can build it from source using Rust 1.60.0 or newer:
+You can install Aftman from crates.io using Rust 1.60.0 or newer:
 
 ```bash
-cargo install --git https://github.com/LPGhatguy/aftman
+cargo install aftman
 ```
 
 On Windows, you should then run
