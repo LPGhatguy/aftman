@@ -2,7 +2,7 @@
 Aftman is a work-in-progess toolchain manager. It is the spiritual successor to [Foreman], a toolchain manager I created at Roblox.
 
 ## Supported Platforms
-Because Aftman has to make decisions about what release artifacts might be compatible with the host platform, it has relatively limited platform support:
+Because Aftman has to make decisions about what release artifacts might be compatible with the host platform, it supports:
 
 - Windows (x86, x86-64)
 - macOS (x86-64, AArch64)
