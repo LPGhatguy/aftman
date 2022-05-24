@@ -35,6 +35,7 @@ pub fn run(exe_path: &Path, args: Vec<String>) -> anyhow::Result<i32> {
         .with_context(|| format!("could not spawn {}", exe_path.display()))?;
 
     let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_io()
         .build()
         .context("could not create tokio runtime")?;
 
