@@ -320,6 +320,27 @@ impl ToolStorage {
         Ok(())
     }
 
+    fn install_executable(&self, id: &ToolId, mut contents: impl Read) -> anyhow::Result<()> {
+        let output_path = self.exe_path(id);
+
+        fs_err::create_dir_all(output_path.parent().unwrap())?;
+
+        let mut output = BufWriter::new(File::create(&output_path)?);
+        io::copy(&mut contents, &mut output)?;
+        output.flush()?;
+
+        #[cfg(unix)]
+        {
+            use std::fs::{set_permissions, Permissions};
+            use std::os::unix::fs::PermissionsExt;
+
+            set_permissions(&output_path, Permissions::from_mode(0o755))
+                .context("failed to mark executable as executable")?;
+        }
+
+        Ok(())
+    }
+
     fn install_artifact(&self, id: &ToolId, artifact: impl Read + Seek) -> anyhow::Result<()> {
         let output_path = self.exe_path(id);
         let expected_name = format!("{}{EXE_SUFFIX}", id.name().name());
@@ -333,11 +354,7 @@ impl ToolStorage {
 
             if file.name() == expected_name {
                 log::debug!("Installing file {} from archive...", file.name());
-
-                let mut output = BufWriter::new(File::create(&output_path)?);
-                io::copy(&mut file, &mut output)?;
-                output.flush()?;
-
+                self.install_executable(id, &mut file)?;
                 return Ok(());
             }
         }
@@ -349,11 +366,7 @@ impl ToolStorage {
 
             if file.name().ends_with(EXE_SUFFIX) {
                 log::debug!("Installing file {} from archive...", file.name());
-
-                let mut output = BufWriter::new(File::create(&output_path)?);
-                io::copy(&mut file, &mut output)?;
-                output.flush()?;
-
+                self.install_executable(id, &mut file)?;
                 return Ok(());
             }
         }
