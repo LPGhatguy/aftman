@@ -6,10 +6,8 @@ use std::fmt::Write;
 use std::io::{self, BufWriter, Read};
 use std::io::{Seek, Write as _};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use anyhow::{bail, Context};
-use command_group::CommandGroup;
 use fs_err::File;
 use once_cell::unsync::OnceCell;
 
@@ -74,9 +72,10 @@ impl ToolStorage {
         self.install_exact(id, TrustMode::Check)?;
 
         let exe_path = self.exe_path(id);
-        let status = Command::new(exe_path).args(args).group_status().unwrap();
-
-        Ok(status.code().unwrap_or(1))
+        let code = crate::process::run(&exe_path, args).with_context(|| {
+            format!("Failed to run tool {id}, your installation may be corrupt.")
+        })?;
+        Ok(code)
     }
 
     pub fn update_links(&self) -> anyhow::Result<()> {

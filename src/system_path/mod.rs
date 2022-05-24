@@ -5,7 +5,7 @@ mod windows;
 pub use windows::add;
 
 #[cfg(not(target_os = "windows"))]
-pub fn add(path: &std::path::Path) -> anyhow::Result<bool> {
+pub fn add(_path: &std::path::Path) -> anyhow::Result<bool> {
     log::debug!("Not adding value to path because this platform is not supported.");
     Ok(false)
 }

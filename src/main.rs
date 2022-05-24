@@ -3,6 +3,7 @@ mod config;
 mod home;
 mod ident;
 mod manifest;
+mod process;
 mod system_path;
 mod tool_alias;
 mod tool_id;
