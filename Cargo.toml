@@ -32,7 +32,7 @@ command-group = "1.0.8"
 winreg = "0.10.1"
 
 [target.'cfg(unix)'.dependencies]
-tokio = { version = "1.18.2", features = ["sync", "process"] }
+tokio = { version = "1.18.2", features = ["macros", "sync", "process"] }
 signal-hook = "0.3.14"
 
 [dev-dependencies]

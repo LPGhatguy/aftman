@@ -2,8 +2,10 @@
 //! and wait for process completion at the same time.
 
 use std::path::Path;
+use std::thread;
 
-use signal_hook::consts::signals::{SIGABORT, SIGINT, SIGQUIT, SIGTERM};
+use anyhow::Context;
+use signal_hook::consts::signal::{SIGABORT, SIGINT, SIGQUIT, SIGTERM};
 use signal_hook::iterator::Signals;
 use tokio::process::Command;
 use tokio::sync::oneshot;
@@ -27,9 +29,15 @@ pub fn run(exe_path: &Path, args: Vec<String>) -> anyhow::Result<i32> {
         (thread, signal_handle)
     };
 
-    let mut child = Command::new(exe_path).args(args).spawn()?;
+    let mut child = Command::new(exe_path)
+        .args(args)
+        .spawn()
+        .with_context(format!("could not spawn {}", exe_path.display()))?;
 
-    let runtime = tokio::runtime::Builder::new_current_thread().build();
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .build()
+        .context("could not create tokio runtime")?;
+
     let code = runtime.block_on(async move {
         tokio::select! {
             // If the child exits cleanly, we can return its exit code directly.
