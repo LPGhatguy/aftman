@@ -1,8 +1,10 @@
 # Aftman Changelog
 
 ## Unreleased Changes
+* Fixed subprocesses living forever on Unix platforms. ([#13])
 * Aftman now correctly marks executables as executable on Unix platforms. ([#14])
 
+[#13]: https://github.com/LPGhatguy/aftman/pull/13
 [#14]: https://github.com/LPGhatguy/aftman/pull/14
 
 ## [0.2.2] (May 23, 2022)
