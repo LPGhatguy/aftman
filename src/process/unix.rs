@@ -21,7 +21,7 @@ pub fn run(exe_path: &Path, args: Vec<String>) -> anyhow::Result<i32> {
 
         let thread = thread::spawn(move || {
             for signal in &mut signals {
-                kill_tx.send(signal);
+                kill_tx.send(signal).ok();
                 break;
             }
         });
@@ -45,7 +45,7 @@ pub fn run(exe_path: &Path, args: Vec<String>) -> anyhow::Result<i32> {
             status = child.wait() => {
                 let code = status.ok().and_then(|s| s.code()).unwrap_or(1);
                 signal_handle.close();
-                signal_thread.join();
+                signal_thread.join().unwrap();
 
                 code
             }
@@ -55,7 +55,7 @@ pub fn run(exe_path: &Path, args: Vec<String>) -> anyhow::Result<i32> {
             code = kill_rx => {
                 child.kill().await.ok();
                 signal_handle.close();
-                signal_thread.join();
+                signal_thread.join().unwrap();
                 std::process::exit(128 + code.unwrap_or(0));
             }
         }
