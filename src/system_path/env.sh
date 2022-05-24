@@ -1,5 +1,5 @@
 #!/bin/sh
-# rustup shell setup
+# aftman shell setup
 # affix colons on either side of $PATH to simplify matching
 case ":${PATH}:" in
     *:"{aftman_bin}":*)

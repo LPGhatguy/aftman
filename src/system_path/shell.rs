@@ -30,7 +30,7 @@ pub(crate) trait UnixShell {
     // heuristic should be used, assuming shells exist if any traces do.
     fn does_exist(&self) -> bool;
 
-    // Gives all rcfiles of a given shell that Rustup is concerned with.
+    // Gives all rcfiles of a given shell that Aftman is concerned with.
     // Used primarily in checking rcfiles for cleanup.
     fn rcfiles(&self) -> Vec<PathBuf>;
 
@@ -70,7 +70,7 @@ impl UnixShell for Bash {
     }
 
     fn rcfiles(&self) -> Vec<PathBuf> {
-        // Bash also may read .profile, however Rustup already includes handling
+        // Bash also may read .profile, however Aftman already includes handling
         // .profile as part of POSIX and always does setup for POSIX shells.
         [".bash_profile", ".bash_login", ".bashrc"]
             .iter()
