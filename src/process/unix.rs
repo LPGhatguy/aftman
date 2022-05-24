@@ -5,7 +5,7 @@ use std::path::Path;
 use std::thread;
 
 use anyhow::Context;
-use signal_hook::consts::signal::{SIGABORT, SIGINT, SIGQUIT, SIGTERM};
+use signal_hook::consts::signal::{SIGABRT, SIGINT, SIGQUIT, SIGTERM};
 use signal_hook::iterator::Signals;
 use tokio::process::Command;
 use tokio::sync::oneshot;
@@ -16,7 +16,7 @@ pub fn run(exe_path: &Path, args: Vec<String>) -> anyhow::Result<i32> {
     // Spawn a thread dedicated to listening for signals and relaying them to
     // our async runtime.
     let (signal_thread, signal_handle) = {
-        let mut signals = Signals::new(&[SIGABORT, SIGINT, SIGQUIT, SIGTERM]).unwrap();
+        let mut signals = Signals::new(&[SIGABRT, SIGINT, SIGQUIT, SIGTERM]).unwrap();
         let signal_handle = signals.handle();
 
         let thread = thread::spawn(move || {
@@ -32,7 +32,7 @@ pub fn run(exe_path: &Path, args: Vec<String>) -> anyhow::Result<i32> {
     let mut child = Command::new(exe_path)
         .args(args)
         .spawn()
-        .with_context(format!("could not spawn {}", exe_path.display()))?;
+        .with_context(|| format!("could not spawn {}", exe_path.display()))?;
 
     let runtime = tokio::runtime::Builder::new_current_thread()
         .build()
@@ -56,7 +56,7 @@ pub fn run(exe_path: &Path, args: Vec<String>) -> anyhow::Result<i32> {
                 child.kill().await.ok();
                 signal_handle.close();
                 signal_thread.join();
-                std::process::exit(128 + code);
+                std::process::exit(128 + code.unwrap_or(0));
             }
         }
     });
