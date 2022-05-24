@@ -20,9 +20,8 @@ pub fn run(exe_path: &Path, args: Vec<String>) -> anyhow::Result<i32> {
         let signal_handle = signals.handle();
 
         let thread = thread::spawn(move || {
-            for signal in &mut signals {
+            if let Some(signal) = signals.into_iter().next() {
                 kill_tx.send(signal).ok();
-                break;
             }
         });
 
