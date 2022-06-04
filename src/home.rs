@@ -55,4 +55,21 @@ impl Home {
     pub fn path(&self) -> &Path {
         self.path.as_ref()
     }
+
+    /// Returns a human-friendly version of `path`, re-substituting `$HOME` if
+    /// it is present in the path.
+    pub fn path_str(&self) -> String {
+        if let Ok(home) = env::var("HOME") {
+            let prefix = Path::new(&home);
+            if let Ok(stripped) = self.path.strip_prefix(prefix) {
+                return format!("$HOME/{}", stripped.to_str().unwrap());
+            }
+        }
+
+        self.path.to_str().unwrap().to_owned()
+    }
+
+    pub fn bin_dir(&self) -> PathBuf {
+        self.path.join("bin")
+    }
 }

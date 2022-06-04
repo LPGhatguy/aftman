@@ -1,11 +1,19 @@
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 mod windows;
 
-#[cfg(target_os = "windows")]
-pub use windows::add;
+#[cfg(windows)]
+pub use windows::*;
 
-#[cfg(not(target_os = "windows"))]
-pub fn add(_path: &std::path::Path) -> anyhow::Result<bool> {
-    log::debug!("Not adding value to path because this platform is not supported.");
-    Ok(false)
-}
+#[cfg(unix)]
+mod unix;
+
+#[cfg(unix)]
+pub use unix::*;
+
+// We should always compile this module to ensure it still builds, since we
+// don't test builds on unsupported platforms.
+#[allow(unused)]
+mod unsupported;
+
+#[cfg(not(any(unix, windows)))]
+pub use unsupported::*;

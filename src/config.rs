@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use std::io::{self, BufWriter, Write};
 use std::path::Path;
 
@@ -17,6 +19,7 @@ pub fn write_only_new(path: &Path, contents: &str) -> anyhow::Result<()> {
     };
 
     file.write_all(contents.as_bytes())?;
+    file.into_inner()?;
 
     Ok(())
 }
@@ -34,6 +37,7 @@ pub fn write_if_not_exists(path: &Path, contents: &str) -> anyhow::Result<()> {
     };
 
     file.write_all(contents.as_bytes())?;
+    file.into_inner()?;
 
     Ok(())
 }
