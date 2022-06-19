@@ -3,7 +3,7 @@ use std::io::{Cursor, Read, Seek};
 use anyhow::Context;
 use reqwest::{
     blocking::Client,
-    header::{ACCEPT, USER_AGENT},
+    header::{ACCEPT, USER_AGENT, AUTHORIZATION},
 };
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -27,11 +27,13 @@ impl GitHubSource {
         }
     }
 
-    pub fn get_all_releases(&self, name: &ToolName) -> anyhow::Result<Vec<Release>> {
+    pub fn get_all_releases(&self, name: &ToolName, token: Option<&String>) -> anyhow::Result<Vec<Release>> {
         let url = format!("https://api.github.com/repos/{}/releases", name);
-        let builder = self.client.get(&url).header(USER_AGENT, APP_NAME);
+        let mut builder = self.client.get(&url).header(USER_AGENT, APP_NAME);
 
-        // TODO: Authorization
+        if let Some(token) = token {
+            builder = builder.header(AUTHORIZATION, format!("token: {}", token));
+        }
 
         let response_body = builder.send()?.text()?;
 
@@ -65,11 +67,11 @@ impl GitHubSource {
         Ok(releases)
     }
 
-    pub fn get_release(&self, id: &ToolId) -> anyhow::Result<Release> {
+    pub fn get_release(&self, id: &ToolId, token: Option<&String>) -> anyhow::Result<Release> {
         // TODO: Better implementation using individual release API instead of
         // using the release list API.
 
-        let releases = self.get_all_releases(id.name())?;
+        let releases = self.get_all_releases(id.name(), token)?;
 
         releases
             .into_iter()

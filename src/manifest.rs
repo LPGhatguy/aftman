@@ -26,6 +26,9 @@ static DEFAULT_MANIFEST: &str = r#"
 pub struct Manifest {
     pub tools: BTreeMap<ToolAlias, ToolId>,
 
+    #[serde(skip)]
+    pub token: Option<String>,
+
     /// The path that this manifest was loaded from if it was loaded from a file.
     #[serde(skip)]
     pub path: Option<PathBuf>,

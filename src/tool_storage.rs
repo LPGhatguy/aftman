@@ -48,6 +48,7 @@ impl ToolStorage {
         spec: &ToolSpec,
         alias: Option<&ToolAlias>,
         global: bool,
+        token: Option<&String>,
     ) -> anyhow::Result<()> {
         let current_dir = current_dir().context("Failed to find current working directory")?;
 
@@ -56,7 +57,7 @@ impl ToolStorage {
             None => Cow::Owned(ToolAlias::new(spec.name().name())?),
         };
 
-        let id = self.install_inexact(spec, TrustMode::Check)?;
+        let id = self.install_inexact(spec, TrustMode::Check, token)?;
         self.link(&alias)?;
 
         if global {
@@ -68,8 +69,8 @@ impl ToolStorage {
         Ok(())
     }
 
-    pub fn run(&self, id: &ToolId, args: Vec<String>) -> anyhow::Result<i32> {
-        self.install_exact(id, TrustMode::Check)?;
+    pub fn run(&self, id: &ToolId, args: Vec<String>, token: Option<&String>) -> anyhow::Result<i32> {
+        self.install_exact(id, TrustMode::Check, token)?;
 
         let exe_path = self.exe_path(id);
         let code = crate::process::run(&exe_path, args).with_context(|| {
@@ -100,13 +101,13 @@ impl ToolStorage {
     }
 
     /// Install all tools from all reachable manifest files.
-    pub fn install_all(&self, trust: TrustMode) -> anyhow::Result<()> {
+    pub fn install_all(&self, trust: TrustMode, token: Option<&String>) -> anyhow::Result<()> {
         let current_dir = current_dir().context("Failed to get current working directory")?;
         let manifests = Manifest::discover(&self.home, &current_dir)?;
 
         for manifest in manifests {
             for (alias, tool_id) in manifest.tools {
-                self.install_exact(&tool_id, trust)?;
+                self.install_exact(&tool_id, trust, token)?;
                 self.link(&alias)?;
             }
         }
@@ -115,7 +116,7 @@ impl ToolStorage {
     }
 
     /// Ensure a tool that matches the given spec is installed.
-    fn install_inexact(&self, spec: &ToolSpec, trust: TrustMode) -> anyhow::Result<ToolId> {
+    fn install_inexact(&self, spec: &ToolSpec, trust: TrustMode, token: Option<&String>) -> anyhow::Result<ToolId> {
         let installed_path = self.storage_dir.join("installed.txt");
         let installed = InstalledToolsCache::read(&installed_path)?;
 
@@ -125,7 +126,7 @@ impl ToolStorage {
 
         log::debug!("Fetching GitHub releases...");
         let github = self.github.get_or_init(GitHubSource::new);
-        let mut releases = github.get_all_releases(spec.name())?;
+        let mut releases = github.get_all_releases(spec.name(), token)?;
         releases.sort_by(|a, b| a.version.cmp(&b.version).reverse());
 
         log::trace!("All releases found: {:#?}", releases);
@@ -188,7 +189,7 @@ impl ToolStorage {
     }
 
     /// Ensure a tool with the given tool ID is installed.
-    fn install_exact(&self, id: &ToolId, trust: TrustMode) -> anyhow::Result<()> {
+    fn install_exact(&self, id: &ToolId, trust: TrustMode, token: Option<&String>) -> anyhow::Result<()> {
         let installed_path = self.storage_dir.join("installed.txt");
         let installed = InstalledToolsCache::read(&installed_path)?;
         let is_installed = installed.tools.contains(id);
@@ -203,7 +204,7 @@ impl ToolStorage {
 
         log::debug!("Fetching GitHub release...");
         let github = self.github.get_or_init(GitHubSource::new);
-        let release = github.get_release(id)?;
+        let release = github.get_release(id, token)?;
 
         let mut compatible_assets = self.get_compatible_assets(&release);
         if compatible_assets.is_empty() {
