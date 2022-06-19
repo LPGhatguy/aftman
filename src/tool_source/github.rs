@@ -32,7 +32,7 @@ impl GitHubSource {
         let mut builder = self.client.get(&url).header(USER_AGENT, APP_NAME);
 
         if let Some(token) = token {
-            builder = builder.header(AUTHORIZATION, format!("token: {}", token));
+            builder = builder.header(AUTHORIZATION, format!("token {}", token));
         }
 
         let response_body = builder.send()?.text()?;
