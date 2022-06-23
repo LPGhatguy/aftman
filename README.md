@@ -164,7 +164,7 @@ I'm hoping to fix some of the core design mistakes I made in Foreman and also ta
 * **Change model to no longer trust-by-default.** Aftman prompts before downloading new tools. ([Roblox/foreman#16]).
 * **Better strategy for storing executables.** ([Roblox/foreman#11])
 * **Better heuristics for picking the right artifacts for your platform.** Aftman uses your Compiler, OS, architecture, and will eventually support custom patterns. ([Roblox/foreman#18])
-* **Proper error handling.** Unlike Foreman, which uses `Result::unwrap` liberally, Aftman has good error hygeine with helpful context attached.
+* **Proper error handling.** Unlike Foreman, which uses `Result::unwrap` liberally, Aftman has good error hygiene with helpful context attached.
 * **Less Roblox-angled.** Aftman does not market itself as being for Roblox development. It is a generally useful tool that can install all sorts of CLI tools.
 
 [Foreman]: https://github.com/Roblox/foreman
