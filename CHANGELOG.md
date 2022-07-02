@@ -4,6 +4,7 @@
 
 ## [0.2.4] (July 1, 2022)
 * Added support for `aftman self-install` on Unix platform. ([#16])
+* Fixed Linux releases running on systems with an older glibc.
 
 [#16]: https://github.com/LPGhatguy/aftman/pull/16
 [0.2.4]: https://github.com/LPGhatguy/aftman/releases/tag/v0.2.4
