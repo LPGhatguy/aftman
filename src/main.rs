@@ -1,5 +1,6 @@
 mod cli;
 mod config;
+mod dirs;
 mod home;
 mod ident;
 mod manifest;

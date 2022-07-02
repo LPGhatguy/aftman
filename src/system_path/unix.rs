@@ -1,22 +1,18 @@
 use std::io::{self, Write};
 use std::path::Path;
 
-use anyhow::Context;
 use fs_err::OpenOptions;
 
 use crate::config::write_if_not_exists;
+use crate::dirs::home_dir;
 use crate::home::Home;
 
 const SHELL_TEMPLATE: &str = include_str!("./env.sh");
 
 pub fn init(home: &Home) -> anyhow::Result<()> {
     let env_path = home.path().join("env");
-    let bin_dir = home.bin_dir();
-    let bin_dir = bin_dir
-        .to_str()
-        .context("bin directory has invalid Unicode")?;
-
-    let body = SHELL_TEMPLATE.replace("{our_bin_dir}", bin_dir);
+    let bin_dir = home.bin_dir_str();
+    let body = SHELL_TEMPLATE.replace("{our_bin_dir}", &bin_dir);
 
     write_if_not_exists(&env_path, &body)?;
 
@@ -30,7 +26,7 @@ pub fn add(home: &Home) -> anyhow::Result<bool> {
     let source_str = format!(r#". "{env_path}""#);
 
     let mut added_any = false;
-    if let Some(home) = dirs::home_dir() {
+    if let Some(home) = home_dir() {
         for filename in [
             ".profile",
             ".bash_profile",
@@ -67,7 +63,7 @@ fn append_line_if_not_present(path: &Path, line: &str) -> anyhow::Result<bool> {
     };
 
     if !ends_with_newline {
-        write!(file, "\n")?;
+        writeln!(file)?;
     }
 
     writeln!(file, "{}", line)?;

@@ -1,19 +1,44 @@
+use std::env;
+
+use crate::home::Home;
+
+mod unix;
+
 #[cfg(windows)]
 mod windows;
 
-#[cfg(windows)]
-pub use windows::*;
+pub fn init(home: &Home) -> anyhow::Result<()> {
+    // Users can define this environment variable to force Aftman to interact
+    // with the user's PATH like a Unix machine. This is helpful for running
+    // tests on Windows.
+    if cfg!(unix) || env::var("AFTMAN_PATH_UNIX").is_ok() {
+        return unix::init(home);
+    }
 
-#[cfg(unix)]
-mod unix;
+    #[cfg(windows)]
+    {
+        return windows::init(home);
+    }
 
-#[cfg(unix)]
-pub use unix::*;
+    #[cfg(not(any(windows, unix)))]
+    {
+        return Ok(());
+    }
+}
 
-// We should always compile this module to ensure it still builds, since we
-// don't test builds on unsupported platforms.
-#[allow(unused)]
-mod unsupported;
+pub fn add(home: &Home) -> anyhow::Result<bool> {
+    if cfg!(unix) || env::var("AFTMAN_PATH_UNIX").is_ok() {
+        return unix::add(home);
+    }
 
-#[cfg(not(any(unix, windows)))]
-pub use unsupported::*;
+    #[cfg(windows)]
+    {
+        return windows::add(home);
+    }
+
+    #[cfg(not(any(windows, unix)))]
+    {
+        log::debug!("Not adding value to path because this platform is not supported.");
+        return Ok(false);
+    }
+}
