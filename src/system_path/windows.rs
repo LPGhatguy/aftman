@@ -2,7 +2,14 @@ use std::path::Path;
 
 use winreg::{enums::HKEY_CURRENT_USER, RegKey};
 
-pub fn add(path: &Path) -> anyhow::Result<bool> {
+use crate::home::Home;
+
+pub fn init(_home: &Home) -> anyhow::Result<()> {
+    Ok(())
+}
+
+pub fn add(home: &Home) -> anyhow::Result<bool> {
+    let path = home.bin_dir();
     let canonical_path = path.canonicalize()?;
 
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);

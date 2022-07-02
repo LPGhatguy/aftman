@@ -1,5 +1,6 @@
 mod cli;
 mod config;
+mod dirs;
 mod home;
 mod ident;
 mod manifest;
@@ -62,6 +63,7 @@ fn run() -> anyhow::Result<()> {
     }
 
     Manifest::init_global(&home)?;
+    system_path::init(&home)?;
 
     Args::from_args().run(&home, tool_storage)
 }
