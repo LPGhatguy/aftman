@@ -8,6 +8,4 @@ fn self_install() {
 
     insta::assert_snapshot!("self-install stdout", output.stdout);
     insta::assert_snapshot!("self-install stderr", output.stderr);
-
-    env.breakpoint();
 }
