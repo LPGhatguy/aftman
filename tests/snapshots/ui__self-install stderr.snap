@@ -4,5 +4,6 @@ assertion_line: 10
 expression: output.stderr
 ---
 [INFO  aftman::tool_storage] Updating all Aftman binaries...
+[INFO  aftman::tool_storage] Installing Aftman...
 [INFO  aftman::tool_storage] Updated Aftman binaries successfully!
 
