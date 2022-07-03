@@ -25,7 +25,7 @@ impl Args {
             Subcommand::Add(sub) => sub.run(tools),
             Subcommand::Install(sub) => sub.run(tools),
             Subcommand::Trust(sub) => sub.run(home),
-            Subcommand::SelfInstall(sub) => sub.run(tools),
+            Subcommand::SelfInstall(sub) => sub.run(home, tools),
 
             Subcommand::List(_) => bail!("This command is not yet implemented."),
             Subcommand::Update(_) => bail!("This command is not yet implemented."),
@@ -163,10 +163,10 @@ pub struct SelfUpdateSubcommand {}
 pub struct SelfInstallSubcommand {}
 
 impl SelfInstallSubcommand {
-    pub fn run(self, tools: ToolStorage) -> anyhow::Result<()> {
+    pub fn run(self, home: &Home, tools: ToolStorage) -> anyhow::Result<()> {
         tools.update_links()?;
 
-        if crate::system_path::add(&tools.bin_dir)? {
+        if crate::system_path::add(&home)? {
             log::info!(
                 "Added ~/.aftman/bin to your PATH. Restart your terminal for this to take effect."
             );

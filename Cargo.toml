@@ -1,13 +1,15 @@
 [package]
 name = "aftman"
 description = "Aftman is a command line toolchain manager"
-version = "0.2.3"
+version = "0.2.5"
+rust-version = "1.58.0"
 license = "MIT"
 edition = "2021"
 repository = "https://github.com/LPGhatguy/aftman"
 readme = "README.md"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace]
+members = ["test-util"]
 
 [dependencies]
 anyhow = "1.0.43"
@@ -23,6 +25,7 @@ semver = { version = "1.0.4", features = ["serde"] }
 serde = { version = "1.0.129", features = ["derive"] }
 serde_json = "1.0.67"
 structopt = "0.3.22"
+tempfile = "3.3.0"
 toml = "0.5.8"
 toml_edit = "0.14.4"
 zip = "0.5.13"
@@ -36,5 +39,7 @@ tokio = { version = "1.18.2", features = ["macros", "sync", "process"] }
 signal-hook = "0.3.14"
 
 [dev-dependencies]
+test-util = { path = "test-util" }
 tempfile = "3.3.0"
 serde_json = "1.0.66"
+insta = "1.15.0"

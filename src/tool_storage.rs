@@ -78,21 +78,51 @@ impl ToolStorage {
         Ok(code)
     }
 
+    /// Update all executables managed by Aftman, which might include Aftman
+    /// itself.
     pub fn update_links(&self) -> anyhow::Result<()> {
         let self_path =
             current_exe().context("Failed to discover path to the Aftman executable")?;
+        let self_name = self_path.file_name().unwrap();
 
         log::info!("Updating all Aftman binaries...");
+
+        // Copy our current executable into a temp directory. That way, if it
+        // ends up replaced by this process, we'll still have the file that
+        // we're supposed to be copying.
+        log::debug!("Copying own executable into temp dir");
+        let source_dir = tempfile::tempdir()?;
+        let source_path = source_dir.path().join(self_name);
+        fs_err::copy(&self_path, &source_path)?;
+        let self_path = source_path;
+
+        let junk_dir = tempfile::tempdir()?;
+        let aftman_name = format!("aftman{EXE_SUFFIX}");
+        let mut found_aftman = false;
 
         for entry in fs_err::read_dir(&self.bin_dir)? {
             let entry = entry?;
             let path = entry.path();
+            let name = path.file_name().unwrap().to_str().unwrap();
 
+            if name == aftman_name {
+                found_aftman = true;
+            }
+
+            log::debug!("Updating {:?}", name);
+
+            // Copy the executable into a temp directory so that we can replace
+            // it even if it's currently running.
+            fs_err::rename(&path, junk_dir.path().join(name))?;
             fs_err::copy(&self_path, path)?;
         }
 
-        let aftman_path = self.bin_dir.join(format!("aftman{}", EXE_SUFFIX));
-        fs_err::copy(&self_path, aftman_path)?;
+        // If we didn't find and update Aftman already, install it.
+        if !found_aftman {
+            log::info!("Installing Aftman...");
+            let aftman_path = self.bin_dir.join(aftman_name);
+            fs_err::copy(&self_path, aftman_path)?;
+        }
 
         log::info!("Updated Aftman binaries successfully!");
 

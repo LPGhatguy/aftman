@@ -18,25 +18,23 @@ $ cat aftman.toml
 rojo = "rojo-rbx/rojo@7.1.0" 
 ```
 
+## Supported Platforms
+Aftman supports:
+
+- Windows (x86, x86-64)
+- macOS (x86-64, AArch64)
+- Linux (x86, x86-64)
+
 ## Installation
-You can install Aftman from crates.io using Rust 1.58.0 or newer:
+You can install Aftman by downloading a pre-built binary for your platform from Aftman's [GitHub Releases Page](https://github.com/LPGhatguy/aftman/releases).
+
+Once you have the release unzipped, run:
 
 ```bash
-cargo install aftman
+./aftman self-install
 ```
 
-On Windows, you should then run
-
-```bash
-aftman self-install
-```
-
-This will install Aftman to its own bin directory and update the `PATH` environment variable for you.
-
-On other platforms, you'll need to add Aftman's bin directory to your system `PATH`:
-
-- On Windows: `%USERPROFILE%\.aftman\bin`
-- On Linux or macOS: `~/.aftman/bin`
+This will install Aftman to its own bin directory and update your system's `PATH` environment variable for you.
 
 ## Getting Started
 To create a new `aftman.toml` file in your current directory, run
@@ -70,13 +68,6 @@ To install all tools listed by your `aftman.toml` files, run
 ```bash
 aftman install
 ```
-
-## Supported Platforms
-Aftman supports:
-
-- Windows (x86, x86-64)
-- macOS (x86-64, AArch64)
-- Linux (x86, x86-64)
 
 ## Subcommands
 For detailed help information, run `aftman --help`.
@@ -164,7 +155,7 @@ I'm hoping to fix some of the core design mistakes I made in Foreman and also ta
 * **Change model to no longer trust-by-default.** Aftman prompts before downloading new tools. ([Roblox/foreman#16]).
 * **Better strategy for storing executables.** ([Roblox/foreman#11])
 * **Better heuristics for picking the right artifacts for your platform.** Aftman uses your Compiler, OS, architecture, and will eventually support custom patterns. ([Roblox/foreman#18])
-* **Proper error handling.** Unlike Foreman, which uses `Result::unwrap` liberally, Aftman has good error hygeine with helpful context attached.
+* **Proper error handling.** Unlike Foreman, which uses `Result::unwrap` liberally, Aftman has good error hygiene with helpful context attached.
 * **Less Roblox-angled.** Aftman does not market itself as being for Roblox development. It is a generally useful tool that can install all sorts of CLI tools.
 
 [Foreman]: https://github.com/Roblox/foreman
