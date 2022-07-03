@@ -8,6 +8,8 @@ use reqwest::{
 use semver::Version;
 use serde::{Deserialize, Serialize};
 
+use crate::auth::AuthManifest;
+use crate::home::Home;
 use crate::tool_id::ToolId;
 use crate::tool_name::ToolName;
 use crate::tool_source::Asset;
@@ -18,20 +20,23 @@ const APP_NAME: &str = "LPGhatguy/aftman";
 
 pub struct GitHubSource {
     client: Client,
+    token: Option<String>
 }
 
 impl GitHubSource {
-    pub fn new() -> Self {
+    pub fn new(home: &Home) -> Self {
+        let token = AuthManifest::load(home).ok();
         Self {
             client: Client::new(),
+            token: token.flatten().map(|t| t.github).flatten()
         }
     }
 
-    pub fn get_all_releases(&self, name: &ToolName, token: Option<&String>) -> anyhow::Result<Vec<Release>> {
+    pub fn get_all_releases(&self, name: &ToolName) -> anyhow::Result<Vec<Release>> {
         let url = format!("https://api.github.com/repos/{}/releases", name);
         let mut builder = self.client.get(&url).header(USER_AGENT, APP_NAME);
 
-        if let Some(token) = token {
+        if let Some(token) = &self.token {
             builder = builder.header(AUTHORIZATION, format!("token {}", token));
         }
 
@@ -67,11 +72,11 @@ impl GitHubSource {
         Ok(releases)
     }
 
-    pub fn get_release(&self, id: &ToolId, token: Option<&String>) -> anyhow::Result<Release> {
+    pub fn get_release(&self, id: &ToolId) -> anyhow::Result<Release> {
         // TODO: Better implementation using individual release API instead of
         // using the release list API.
 
-        let releases = self.get_all_releases(id.name(), token)?;
+        let releases = self.get_all_releases(id.name())?;
 
         releases
             .into_iter()

@@ -1,3 +1,4 @@
+mod auth;
 mod cli;
 mod config;
 mod home;
@@ -18,6 +19,7 @@ use std::env::{consts::EXE_SUFFIX, current_dir, current_exe};
 use anyhow::{bail, format_err, Context};
 use structopt::StructOpt;
 
+use crate::auth::AuthManifest;
 use crate::cli::Args;
 use crate::home::Home;
 use crate::manifest::Manifest;
@@ -35,7 +37,7 @@ fn run() -> anyhow::Result<()> {
         for manifest in &manifests {
             if let Some(tool_id) = manifest.tools.get(exe_name.as_str()) {
                 let args = std::env::args().skip(1).collect();
-                tool_storage.run(tool_id, args, manifest.token.as_ref())?;
+                tool_storage.run(tool_id, args)?;
                 return Ok(());
             }
         }
@@ -62,6 +64,7 @@ fn run() -> anyhow::Result<()> {
     }
 
     Manifest::init_global(&home)?;
+    AuthManifest::init(&home)?;
 
     Args::from_args().run(&home, tool_storage)
 }

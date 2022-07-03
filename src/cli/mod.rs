@@ -85,15 +85,11 @@ pub struct AddSubcommand {
     /// of installing it to the nearest aftman.toml file.
     #[structopt(long)]
     pub global: bool,
-
-    /// A Personal Access Token for private git repos
-    #[structopt(long)]
-    pub token: Option<String>
 }
 
 impl AddSubcommand {
     pub fn run(self, tools: ToolStorage) -> anyhow::Result<()> {
-        tools.add(&self.tool_spec, self.tool_alias.as_ref(), self.global, self.token.as_ref())
+        tools.add(&self.tool_spec, self.tool_alias.as_ref(), self.global)
     }
 }
 
@@ -124,10 +120,6 @@ pub struct InstallSubcommand {
     /// recommended to only run this on CI machines.
     #[structopt(long)]
     pub no_trust_check: bool,
-
-    /// A Personal Access Token for private git repos
-    #[structopt(long)]
-    pub token: Option<String>
 }
 
 impl InstallSubcommand {
@@ -138,7 +130,7 @@ impl InstallSubcommand {
             TrustMode::Check
         };
 
-        tools.install_all(trust, self.token.as_ref())
+        tools.install_all(trust)
     }
 }
 
