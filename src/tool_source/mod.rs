@@ -48,7 +48,10 @@ impl Asset {
             || match_name.contains("win64")
         {
             Some(OperatingSystem::Windows)
-        } else if match_name.contains("macos") || match_name.contains("osx") {
+        } else if match_name.contains("macos")
+            || match_name.contains("osx")
+            || match_name.contains("darwin")
+        {
             Some(OperatingSystem::MacOS)
         } else if match_name.contains("linux") || match_name.contains("ubuntu") {
             Some(OperatingSystem::Linux)
