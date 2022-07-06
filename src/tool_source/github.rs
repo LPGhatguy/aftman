@@ -3,11 +3,13 @@ use std::io::{Cursor, Read, Seek};
 use anyhow::Context;
 use reqwest::{
     blocking::Client,
-    header::{ACCEPT, USER_AGENT},
+    header::{ACCEPT, AUTHORIZATION, USER_AGENT},
 };
 use semver::Version;
 use serde::{Deserialize, Serialize};
 
+use crate::auth::AuthManifest;
+use crate::home::Home;
 use crate::tool_id::ToolId;
 use crate::tool_name::ToolName;
 use crate::tool_source::Asset;
@@ -18,20 +20,25 @@ const APP_NAME: &str = "LPGhatguy/aftman";
 
 pub struct GitHubSource {
     client: Client,
+    token: Option<String>,
 }
 
 impl GitHubSource {
-    pub fn new() -> Self {
+    pub fn new(home: &Home) -> Self {
+        let token = AuthManifest::load(home).ok();
         Self {
             client: Client::new(),
+            token: token.flatten().map(|t| t.github).flatten(),
         }
     }
 
     pub fn get_all_releases(&self, name: &ToolName) -> anyhow::Result<Vec<Release>> {
         let url = format!("https://api.github.com/repos/{}/releases", name);
-        let builder = self.client.get(&url).header(USER_AGENT, APP_NAME);
+        let mut builder = self.client.get(&url).header(USER_AGENT, APP_NAME);
 
-        // TODO: Authorization
+        if let Some(token) = &self.token {
+            builder = builder.header(AUTHORIZATION, format!("token {}", token));
+        }
 
         let response_body = builder.send()?.text()?;
 

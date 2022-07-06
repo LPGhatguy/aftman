@@ -154,7 +154,7 @@ impl ToolStorage {
         log::info!("Installing tool: {}", spec);
 
         log::debug!("Fetching GitHub releases...");
-        let github = self.github.get_or_init(GitHubSource::new);
+        let github = self.github.get_or_init(|| GitHubSource::new(&self.home));
         let mut releases = github.get_all_releases(spec.name())?;
         releases.sort_by(|a, b| a.version.cmp(&b.version).reverse());
 
@@ -232,7 +232,7 @@ impl ToolStorage {
         log::info!("Installing tool: {id}");
 
         log::debug!("Fetching GitHub release...");
-        let github = self.github.get_or_init(GitHubSource::new);
+        let github = self.github.get_or_init(|| GitHubSource::new(&self.home));
         let release = github.get_release(id)?;
 
         let mut compatible_assets = self.get_compatible_assets(&release);
