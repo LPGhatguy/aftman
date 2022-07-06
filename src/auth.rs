@@ -64,9 +64,7 @@ impl AuthManifest {
 
         fs_err::write(&manifest_path, document.to_string())?;
 
-        log::info!(
-            "A {token_type} token has been added globally.",
-        );
+        log::info!("A {token_type} token has been added globally.");
 
         Ok(())
     }

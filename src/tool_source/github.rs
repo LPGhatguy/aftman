@@ -3,7 +3,7 @@ use std::io::{Cursor, Read, Seek};
 use anyhow::Context;
 use reqwest::{
     blocking::Client,
-    header::{ACCEPT, USER_AGENT, AUTHORIZATION},
+    header::{ACCEPT, AUTHORIZATION, USER_AGENT},
 };
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -20,7 +20,7 @@ const APP_NAME: &str = "LPGhatguy/aftman";
 
 pub struct GitHubSource {
     client: Client,
-    token: Option<String>
+    token: Option<String>,
 }
 
 impl GitHubSource {
@@ -28,7 +28,7 @@ impl GitHubSource {
         let token = AuthManifest::load(home).ok();
         Self {
             client: Client::new(),
-            token: token.flatten().map(|t| t.github).flatten()
+            token: token.flatten().map(|t| t.github).flatten(),
         }
     }
 
