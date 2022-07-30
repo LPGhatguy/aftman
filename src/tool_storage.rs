@@ -177,7 +177,7 @@ impl ToolStorage {
                 return Ok(id);
             }
 
-            let mut compatible_assets = self.get_compatible_assets(&release);
+            let mut compatible_assets = self.get_compatible_assets(release);
             if compatible_assets.is_empty() {
                 log::warn!(
                     "Version {} was compatible, but had no assets compatible with your platform.",
@@ -269,12 +269,12 @@ impl ToolStorage {
     }
 
     /// Picks the best asset out of the list of assets.
-    fn sort_assets_by_preference(&self, assets: &mut Vec<Asset>) {
+    fn sort_assets_by_preference(&self, assets: &mut [Asset]) {
         assets.sort_by(|a, b| a.arch.cmp(&b.arch).then(a.toolchain.cmp(&b.toolchain)));
     }
 
     /// Returns a list of compatible assets from the given release.
-    fn get_compatible_assets<'a>(&self, release: &'a Release) -> Vec<Asset> {
+    fn get_compatible_assets(&self, release: &Release) -> Vec<Asset> {
         // If any assets list an OS or architecture that's compatible with
         // ours, we want to make that part of our filter criteria.
         let any_has_os = release

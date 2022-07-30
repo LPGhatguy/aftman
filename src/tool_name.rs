@@ -22,8 +22,8 @@ impl ToolName {
         let scope = scope.as_ref();
         let name = name.as_ref();
 
-        check_ident("Scope", &scope)?;
-        check_ident("Name", &name)?;
+        check_ident("Scope", scope)?;
+        check_ident("Name", name)?;
 
         let inner = format!("{}/{}", scope, name);
 
