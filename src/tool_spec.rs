@@ -66,7 +66,7 @@ impl FromStr for ToolSpec {
         let version = match name_version.next() {
             None => None,
             Some(version_str) => {
-                if version_str.len() == 0 || version_str.chars().all(char::is_whitespace) {
+                if version_str.is_empty() || version_str.chars().all(char::is_whitespace) {
                     return Err(format_err!("VERSION must be non-empty.")).with_context(context);
                 }
 
@@ -118,10 +118,7 @@ mod test {
     /// Utility to create a ToolSpec for creating quick test cases.
     fn spec(scope: &str, name: &str, version: Option<&str>) -> ToolSpec {
         let name = ToolName::new(scope, name).expect("failed to create test ToolName");
-        let version = match version {
-            Some(v) => Some(Version::parse(v).expect("failed to create test Version")),
-            None => None,
-        };
+        let version = version.map(|v| Version::parse(v).expect("failed to create test Version"));
         ToolSpec::new(name, version)
     }
 

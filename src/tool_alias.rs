@@ -40,7 +40,7 @@ impl fmt::Display for ToolAlias {
 
 impl Borrow<str> for ToolAlias {
     fn borrow(&self) -> &str {
-        &self.name.as_ref()
+        self.name.as_ref()
     }
 }
 

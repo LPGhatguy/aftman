@@ -166,7 +166,7 @@ impl SelfInstallSubcommand {
     pub fn run(self, home: &Home, tools: ToolStorage) -> anyhow::Result<()> {
         tools.update_links()?;
 
-        if crate::system_path::add(&home)? {
+        if crate::system_path::add(home)? {
             log::info!(
                 "Added ~/.aftman/bin to your PATH. Restart your terminal for this to take effect."
             );

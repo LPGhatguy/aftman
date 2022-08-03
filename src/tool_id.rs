@@ -47,7 +47,7 @@ impl FromStr for ToolId {
 
         let mut name_version = value.splitn(2, '@');
         let name = name_version.next().unwrap();
-        let name = ToolName::from_str(&name).with_context(context)?;
+        let name = ToolName::from_str(name).with_context(context)?;
 
         let version = name_version
             .next()
