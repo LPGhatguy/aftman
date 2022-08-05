@@ -36,8 +36,7 @@ fn run() -> anyhow::Result<()> {
         for manifest in &manifests {
             if let Some(tool_id) = manifest.tools.get(exe_name.as_str()) {
                 let args = std::env::args().skip(1).collect();
-                tool_storage.run(tool_id, args)?;
-                return Ok(());
+                std::process::exit(tool_storage.run(tool_id, args)?);
             }
         }
 
