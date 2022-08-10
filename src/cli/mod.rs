@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::env::current_dir;
 use std::path::PathBuf;
 
@@ -9,7 +10,7 @@ use crate::manifest::Manifest;
 use crate::tool_alias::ToolAlias;
 use crate::tool_name::ToolName;
 use crate::tool_spec::ToolSpec;
-use crate::tool_storage::ToolStorage;
+use crate::tool_storage::{InstalledToolsCache, ToolStorage};
 use crate::trust::{TrustCache, TrustMode};
 
 #[derive(Debug, StructOpt)]
@@ -22,12 +23,12 @@ impl Args {
     pub fn run(self, home: &Home, tools: ToolStorage) -> anyhow::Result<()> {
         match self.subcommand {
             Subcommand::Init(sub) => sub.run(),
+            Subcommand::List(sub) => sub.run(home),
             Subcommand::Add(sub) => sub.run(tools),
             Subcommand::Install(sub) => sub.run(tools),
             Subcommand::Trust(sub) => sub.run(home),
             Subcommand::SelfInstall(sub) => sub.run(home, tools),
 
-            Subcommand::List(_) => bail!("This command is not yet implemented."),
             Subcommand::Update(_) => bail!("This command is not yet implemented."),
             Subcommand::SelfUpdate(_) => bail!("This command is not yet implemented."),
         }
@@ -70,6 +71,39 @@ impl InitSubcommand {
 /// Lists all existing tools managed by Aftman.
 #[derive(Debug, StructOpt)]
 pub struct ListSubcommand {}
+
+impl ListSubcommand {
+    pub fn run(self, home: &Home) -> anyhow::Result<()> {
+        let installed_path = home.path().join("tool-storage").join("installed.txt");
+        let installed = InstalledToolsCache::read(&installed_path)?;
+
+        let mut tools = HashMap::new();
+
+        for tool in installed.tools {
+            tools
+                .entry(tool.name().to_string())
+                .or_insert(Vec::new())
+                .push(tool.version().clone());
+        }
+
+        for (tool, mut versions) in tools {
+            println!("{tool}");
+
+            versions.sort();
+            versions.reverse();
+
+            let versions = versions
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<_>>()
+                .join(", ");
+
+            println!("  {versions}");
+        }
+
+        Ok(())
+    }
+}
 
 /// Adds a new tool to Aftman and installs it.
 #[derive(Debug, StructOpt)]
