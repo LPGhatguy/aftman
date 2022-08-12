@@ -1,3 +1,4 @@
+use std::env;
 use std::io::{self, Write};
 use std::path::Path;
 
@@ -27,23 +28,26 @@ pub fn add(home: &Home) -> anyhow::Result<bool> {
 
     let mut added_any = false;
     if let Some(home) = home_dir() {
-        for filename in [
-            ".profile",
-            ".bash_profile",
-            ".bashrc",
-            ".bash_login",
-            ".zshenv",
-        ] {
+        for filename in [".profile", ".bash_profile", ".bashrc", ".bash_login"] {
             let path = home.join(filename);
-            let added = append_line_if_not_present(&path, &source_str)?;
+            let added = append_line_if_not_present(&path, &source_str, false)?;
             added_any |= added;
         }
+
+        let shell = env::var("SHELL");
+        let is_zsh = matches!(shell, Ok(sh) if sh.contains("zsh"));
+        let path = home.join(".zshenv");
+
+        // If the user is currently running zsh, create .zshenv if it doesn't
+        // exist. Otherwise, we'll only append to it if it already exists.
+        let added = append_line_if_not_present(&path, &source_str, is_zsh)?;
+        added_any |= added;
     }
 
     Ok(added_any)
 }
 
-fn append_line_if_not_present(path: &Path, line: &str) -> anyhow::Result<bool> {
+fn append_line_if_not_present(path: &Path, line: &str, create: bool) -> anyhow::Result<bool> {
     let ends_with_newline = match fs_err::read_to_string(path) {
         // This file already has this line, skip it.
         Ok(contents) if contents.contains(line) => return Ok(false),
@@ -51,7 +55,11 @@ fn append_line_if_not_present(path: &Path, line: &str) -> anyhow::Result<bool> {
         _ => false,
     };
 
-    let mut file = match OpenOptions::new().create_new(false).append(true).open(path) {
+    let mut file = match OpenOptions::new()
+        .create_new(create)
+        .append(true)
+        .open(path)
+    {
         Ok(file) => file,
         Err(err) => {
             if err.kind() != io::ErrorKind::NotFound {
