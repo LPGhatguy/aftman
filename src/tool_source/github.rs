@@ -85,13 +85,15 @@ impl GitHubSource {
     }
 
     pub fn download_asset(&self, url: &str) -> anyhow::Result<impl Read + Seek> {
-        let builder = self
+        let mut builder = self
             .client
             .get(url)
             .header(USER_AGENT, APP_NAME)
             .header(ACCEPT, "application/octet-stream");
 
-        // TODO: Authorization
+        if let Some(token) = &self.token {
+            builder = builder.header(AUTHORIZATION, format!("token {}", token));
+        }
 
         let response = builder.send()?;
         let body = response.bytes()?.to_vec();
