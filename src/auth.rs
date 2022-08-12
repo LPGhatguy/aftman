@@ -54,7 +54,7 @@ impl AuthManifest {
         Ok(Some(manifest))
     }
 
-    fn add_token(home: &Home, token_type: &String, token: &String) -> anyhow::Result<()> {
+    fn add_token(home: &Home, token_type: &str, token: &str) -> anyhow::Result<()> {
         let manifest_path = home.path().join(MANIFEST_FILE_NAME);
         let content = fs_err::read_to_string(&manifest_path)?;
         let mut document: Document = content.parse()?;
