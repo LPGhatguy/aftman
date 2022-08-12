@@ -13,7 +13,6 @@ static DEFAULT_MANIFEST: &str = r#"
 # This file is for auth tokens managed by Aftman, a cross-platform toolchain manager.
 # For more information, see https://github.com/LPGhatguy/aftman
 
-# To add a new token, add an entry.
 # github = "token"
 "#;
 
