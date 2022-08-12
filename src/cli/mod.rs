@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::env::current_dir;
 use std::path::PathBuf;
 
@@ -77,7 +77,7 @@ impl ListSubcommand {
         let installed_path = home.path().join("tool-storage").join("installed.txt");
         let installed = InstalledToolsCache::read(&installed_path)?;
 
-        let mut tools = HashMap::new();
+        let mut tools = BTreeMap::new();
 
         for tool in installed.tools {
             tools
