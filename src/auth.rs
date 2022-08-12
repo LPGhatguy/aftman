@@ -33,8 +33,7 @@ impl AuthManifest {
         Ok(())
     }
 
-    /// Try to load an Aftman manifest from a directory containing an
-    /// aftman.toml file.
+    /// Try to load an auth.toml from a directory
     pub fn load(home: &Home) -> anyhow::Result<Option<AuthManifest>> {
         let file_path = home.path().join(MANIFEST_FILE_NAME);
 
@@ -50,7 +49,7 @@ impl AuthManifest {
         };
 
         let manifest: AuthManifest = toml::from_slice(&contents)
-            .with_context(|| format_err!("Invalid manifest at {}", file_path.display()))?;
+            .with_context(|| format_err!("Invalid auth.toml at {}", file_path.display()))?;
 
         Ok(Some(manifest))
     }
