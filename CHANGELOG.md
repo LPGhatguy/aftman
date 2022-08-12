@@ -2,6 +2,18 @@
 
 ## Unreleased Changes
 
+## [0.2.6] (August 11, 2022)
+* Added `aftman list` subcommand. ([#27])
+* Added support for installing macOS artifacts with the "darwin" keyword. ([#21])
+* Fixed tool exit codes not being propagated. ([#25])
+* Fixed `self-install` not creating a `.zshenv` file on macOS. ([#28])
+
+[#21]: https://github.com/LPGhatguy/aftman/pull/21
+[#25]: https://github.com/LPGhatguy/aftman/pull/25
+[#27]: https://github.com/LPGhatguy/aftman/pull/27
+[#28]: https://github.com/LPGhatguy/aftman/pull/28
+[0.2.6]: https://github.com/LPGhatguy/aftman/releases/tag/v0.2.6
+
 ## [0.2.5] (July 2, 2022)
 * Improved `self-install` behavior. ([#20])
 

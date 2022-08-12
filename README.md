@@ -140,7 +140,15 @@ Adds a tool to the list of trusted tools.
 Aftman prompts the user before installing new tools. Running `aftman trust` beforehand skips this prompt. This is useful when running automation that depends on a tool from a known location.
 
 ### `aftman list`
-**This subcommand is not yet implemented.**
+*Added in Aftman 0.2.6.*
+
+Usage:
+
+```bash
+aftman list
+```
+
+Lists all tools currently managed by Aftman.
 
 ### `aftman update`
 **This subcommand is not yet implemented.**
