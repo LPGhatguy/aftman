@@ -9,7 +9,6 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 
 use crate::auth::AuthManifest;
-use crate::home::Home;
 use crate::tool_id::ToolId;
 use crate::tool_name::ToolName;
 use crate::tool_source::Asset;
@@ -24,11 +23,10 @@ pub struct GitHubSource {
 }
 
 impl GitHubSource {
-    pub fn new(home: &Home) -> Self {
-        let token = AuthManifest::load(home).ok();
+    pub fn new(auth: Option<AuthManifest>) -> Self {
         Self {
             client: Client::new(),
-            token: token.flatten().map(|t| t.github).flatten(),
+            token: auth.map(|t| t.github).flatten()
         }
     }
 
