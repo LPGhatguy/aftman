@@ -134,11 +134,23 @@ impl ToolStorage {
         let current_dir = current_dir().context("Failed to get current working directory")?;
         let manifests = Manifest::discover(&self.home, &current_dir)?;
 
-        for manifest in manifests {
-            for (alias, tool_id) in manifest.tools {
-                self.install_exact(&tool_id, trust)?;
-                self.link(&alias)?;
-            }
+        // Installing all tools is split into multiple steps to allow for concurrency:
+        // 1. Trust check - this requires user input and may yield
+        // 2. Installation - skips trust checks to install concurrently
+
+        let all_tools = manifests
+            .iter()
+            .flat_map(|manifest| &manifest.tools)
+            .collect::<Vec<(&ToolAlias, &ToolId)>>();
+
+        for (_, tool_id) in &all_tools {
+            self.trust_check(tool_id.name(), trust)?;
+        }
+
+        // TODO: Install in parallel
+        for (alias, tool_id) in &all_tools {
+            self.install_exact(tool_id, TrustMode::NoCheck)?;
+            self.link(alias)?;
         }
 
         Ok(())
