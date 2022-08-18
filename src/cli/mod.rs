@@ -14,7 +14,7 @@ use crate::tool_storage::{InstalledToolsCache, ToolStorage};
 use crate::trust::{TrustCache, TrustMode};
 
 #[derive(Debug, Parser)]
-#[clap(version)]
+#[clap(author, version, about)]
 pub struct Args {
     #[clap(subcommand)]
     pub subcommand: Subcommand,

@@ -7,6 +7,7 @@ license = "MIT"
 edition = "2021"
 repository = "https://github.com/LPGhatguy/aftman"
 readme = "README.md"
+authors = ["Lucien Greathouse <me@lpghatguy.com>"]
 
 [workspace]
 members = ["test-util"]
