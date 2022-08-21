@@ -17,7 +17,7 @@ mod trust;
 use std::env::{consts::EXE_SUFFIX, current_dir, current_exe};
 
 use anyhow::{bail, format_err, Context};
-use structopt::StructOpt;
+use clap::Parser;
 
 use crate::cli::Args;
 use crate::home::Home;

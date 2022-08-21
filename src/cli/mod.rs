@@ -3,7 +3,7 @@ use std::env::current_dir;
 use std::path::PathBuf;
 
 use anyhow::{bail, Context};
-use structopt::StructOpt;
+use clap::Parser;
 
 use crate::home::Home;
 use crate::manifest::Manifest;
@@ -13,9 +13,10 @@ use crate::tool_spec::ToolSpec;
 use crate::tool_storage::{InstalledToolsCache, ToolStorage};
 use crate::trust::{TrustCache, TrustMode};
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Parser)]
+#[clap(author, version, about)]
 pub struct Args {
-    #[structopt(subcommand)]
+    #[clap(subcommand)]
     pub subcommand: Subcommand,
 }
 
@@ -35,7 +36,7 @@ impl Args {
     }
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Parser)]
 pub enum Subcommand {
     Init(InitSubcommand),
     List(ListSubcommand),
@@ -48,7 +49,7 @@ pub enum Subcommand {
 }
 
 /// Initialize a new Aftman manifest file.
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Parser)]
 pub struct InitSubcommand {
     /// The folder to initialize the manifest file in. Defaults to the current
     /// directory.
@@ -69,7 +70,7 @@ impl InitSubcommand {
 }
 
 /// Lists all existing tools managed by Aftman.
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Parser)]
 pub struct ListSubcommand {}
 
 impl ListSubcommand {
@@ -106,7 +107,7 @@ impl ListSubcommand {
 }
 
 /// Adds a new tool to Aftman and installs it.
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Parser)]
 pub struct AddSubcommand {
     /// A tool spec describing where to get the tool and what version to
     /// install.
@@ -117,7 +118,7 @@ pub struct AddSubcommand {
 
     /// Install this tool globally by adding it to ~/.aftman/aftman.toml instead
     /// of installing it to the nearest aftman.toml file.
-    #[structopt(long)]
+    #[clap(long)]
     pub global: bool,
 }
 
@@ -132,27 +133,27 @@ impl AddSubcommand {
 /// Tools can be specified either by their alias or by their name.
 ///
 /// If no tools are listed, Aftman will update all installed tools.
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Parser)]
 pub struct UpdateSubcommand {
     /// One or more tools to update. If no tools are given, update all tools.
     pub aliases_or_specs: Vec<String>,
 
     /// Update this tool globally by adding it to ~/.aftman/aftman.toml instead
     /// of installing it to the nearest aftman.toml file that mentions it.
-    #[structopt(long)]
+    #[clap(long)]
     pub global: bool,
 
     /// Ignore semantic versioning and upgrade to the latest stable versions.
-    #[structopt(long)]
+    #[clap(long)]
     pub latest: bool,
 }
 
 /// Install all tools listed by Aftman files from the current directory.
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Parser)]
 pub struct InstallSubcommand {
     /// Skip checking if these tools have been installed before. It is
     /// recommended to only run this on CI machines.
-    #[structopt(long)]
+    #[clap(long)]
     pub no_trust_check: bool,
 }
 
@@ -169,7 +170,7 @@ impl InstallSubcommand {
 }
 
 /// Mark the given tool name as being trusted.
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Parser)]
 pub struct TrustSubcommand {
     /// The tool to mark as trusted.
     pub name: ToolName,
@@ -188,12 +189,12 @@ impl TrustSubcommand {
 }
 
 /// Update Aftman from the internet.
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Parser)]
 pub struct SelfUpdateSubcommand {}
 
 /// Install Aftman and update all references to it. Run this command if you've
 /// just upgraded Aftman manually.
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Parser)]
 pub struct SelfInstallSubcommand {}
 
 impl SelfInstallSubcommand {
