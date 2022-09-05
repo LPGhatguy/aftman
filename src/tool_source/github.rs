@@ -26,7 +26,7 @@ impl GitHubSource {
     pub fn new(auth: Option<&AuthManifest>) -> Self {
         Self {
             client: Client::new(),
-            token: auth.and_then(|t| t.github.clone())
+            token: auth.and_then(|t| t.github.clone()),
         }
     }
 
