@@ -23,10 +23,10 @@ pub struct GitHubSource {
 }
 
 impl GitHubSource {
-    pub fn new(auth: Option<AuthManifest>) -> Self {
+    pub fn new(auth: Option<&AuthManifest>) -> Self {
         Self {
             client: Client::new(),
-            token: auth.map(|t| t.github).flatten()
+            token: auth.and_then(|t| t.github.clone())
         }
     }
 
