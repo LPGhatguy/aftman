@@ -1,3 +1,4 @@
+mod auth;
 mod cli;
 mod config;
 mod dirs;
@@ -19,6 +20,7 @@ use std::env::{consts::EXE_SUFFIX, current_dir, current_exe};
 use anyhow::{bail, format_err, Context};
 use clap::Parser;
 
+use crate::auth::AuthManifest;
 use crate::cli::Args;
 use crate::home::Home;
 use crate::manifest::Manifest;
@@ -62,6 +64,7 @@ fn run() -> anyhow::Result<()> {
     }
 
     Manifest::init_global(&home)?;
+    AuthManifest::init(&home)?;
     system_path::init(&home)?;
 
     Args::from_args().run(&home, tool_storage)

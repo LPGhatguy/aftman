@@ -11,6 +11,7 @@ use anyhow::{bail, Context};
 use fs_err::File;
 use once_cell::unsync::OnceCell;
 
+use crate::auth::AuthManifest;
 use crate::home::Home;
 use crate::manifest::Manifest;
 use crate::tool_alias::ToolAlias;
@@ -24,6 +25,7 @@ pub struct ToolStorage {
     pub storage_dir: PathBuf,
     pub bin_dir: PathBuf,
     home: Home,
+    auth: Option<AuthManifest>,
     github: OnceCell<GitHubSource>,
 }
 
@@ -35,10 +37,13 @@ impl ToolStorage {
         let bin_dir = home.path().join("bin");
         fs_err::create_dir_all(&bin_dir)?;
 
+        let auth = AuthManifest::load(home)?;
+
         Ok(Self {
             storage_dir,
             bin_dir,
             home: home.clone(),
+            auth,
             github: OnceCell::new(),
         })
     }
@@ -154,7 +159,9 @@ impl ToolStorage {
         log::info!("Installing tool: {}", spec);
 
         log::debug!("Fetching GitHub releases...");
-        let github = self.github.get_or_init(GitHubSource::new);
+        let github = self
+            .github
+            .get_or_init(|| GitHubSource::new(self.auth.as_ref()));
         let mut releases = github.get_all_releases(spec.name())?;
         releases.sort_by(|a, b| a.version.cmp(&b.version).reverse());
 
@@ -232,7 +239,9 @@ impl ToolStorage {
         log::info!("Installing tool: {id}");
 
         log::debug!("Fetching GitHub release...");
-        let github = self.github.get_or_init(GitHubSource::new);
+        let github = self
+            .github
+            .get_or_init(|| GitHubSource::new(self.auth.as_ref()));
         let release = github.get_release(id)?;
 
         let mut compatible_assets = self.get_compatible_assets(&release);
