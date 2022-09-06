@@ -69,6 +69,19 @@ To install all tools listed by your `aftman.toml` files, run
 aftman install
 ```
 
+### Authenticating with GitHub (Aftman 0.2.7+)
+If you're running into GitHub rate limits or want to manage private tools hosted on GitHub, you can give Aftman a [Personal Access Token][pat].
+
+Generate a Personal Access Token, then edit `~/.aftman/auth.toml` to add it:
+
+```toml
+github = "pat goes here"
+```
+
+Aftman will use this token to authenticate all requests to GitHub.
+
+[pat]: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token
+
 ## Subcommands
 For detailed help information, run `aftman --help`.
 

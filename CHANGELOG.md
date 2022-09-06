@@ -2,6 +2,16 @@
 
 ## Unreleased Changes
 
+## [0.2.7] (September 6, 2022)
+* Added support for authenticating with GitHub. ([#18])
+	* After updating Aftman, edit `~/.aftman/auth.toml` to add a [Personal Access Token][pat].
+* Migrated from structopt to clap. ([#29])
+
+[#18]: https://github.com/LPGhatguy/aftman/pull/18
+[#29]: https://github.com/LPGhatguy/aftman/pull/29
+[pat]: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token
+[0.2.7]: https://github.com/LPGhatguy/aftman/releases/tag/v0.2.7
+
 ## [0.2.6] (August 11, 2022)
 * Added `aftman list` subcommand. ([#27])
 * Added support for installing macOS artifacts with the "darwin" keyword. ([#21])
