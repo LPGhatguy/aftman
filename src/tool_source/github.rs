@@ -3,11 +3,12 @@ use std::io::{Cursor, Read, Seek};
 use anyhow::Context;
 use reqwest::{
     blocking::Client,
-    header::{ACCEPT, USER_AGENT},
+    header::{ACCEPT, AUTHORIZATION, USER_AGENT},
 };
 use semver::Version;
 use serde::{Deserialize, Serialize};
 
+use crate::auth::AuthManifest;
 use crate::tool_id::ToolId;
 use crate::tool_name::ToolName;
 use crate::tool_source::Asset;
@@ -18,20 +19,24 @@ const APP_NAME: &str = "LPGhatguy/aftman";
 
 pub struct GitHubSource {
     client: Client,
+    token: Option<String>,
 }
 
 impl GitHubSource {
-    pub fn new() -> Self {
+    pub fn new(auth: Option<&AuthManifest>) -> Self {
         Self {
             client: Client::new(),
+            token: auth.and_then(|t| t.github.clone()),
         }
     }
 
     pub fn get_all_releases(&self, name: &ToolName) -> anyhow::Result<Vec<Release>> {
         let url = format!("https://api.github.com/repos/{}/releases", name);
-        let builder = self.client.get(&url).header(USER_AGENT, APP_NAME);
+        let mut builder = self.client.get(&url).header(USER_AGENT, APP_NAME);
 
-        // TODO: Authorization
+        if let Some(token) = &self.token {
+            builder = builder.header(AUTHORIZATION, format!("token {}", token));
+        }
 
         let response_body = builder.send()?.text()?;
 
@@ -78,13 +83,15 @@ impl GitHubSource {
     }
 
     pub fn download_asset(&self, url: &str) -> anyhow::Result<impl Read + Seek> {
-        let builder = self
+        let mut builder = self
             .client
             .get(url)
             .header(USER_AGENT, APP_NAME)
             .header(ACCEPT, "application/octet-stream");
 
-        // TODO: Authorization
+        if let Some(token) = &self.token {
+            builder = builder.header(AUTHORIZATION, format!("token {}", token));
+        }
 
         let response = builder.send()?;
         let body = response.bytes()?.to_vec();
