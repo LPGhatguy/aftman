@@ -56,7 +56,9 @@ impl ToolStorage {
             None => Cow::Owned(ToolAlias::new(spec.name().name())?),
         };
 
-        let id = self.install_inexact(spec, TrustMode::Check)?;
+        self.trust_check(spec.name(), TrustMode::Check)?;
+
+        let id = self.install_inexact(spec)?;
         self.link(&alias)?;
 
         if global {
@@ -69,7 +71,9 @@ impl ToolStorage {
     }
 
     pub fn run(&self, id: &ToolId, args: Vec<String>) -> anyhow::Result<i32> {
-        self.install_exact(id, TrustMode::Check)?;
+        self.trust_check(id.name(), TrustMode::Check)?;
+
+        self.install_exact(id)?;
 
         let exe_path = self.exe_path(id);
         let code = crate::process::run(&exe_path, args).with_context(|| {
@@ -135,8 +139,8 @@ impl ToolStorage {
         let manifests = Manifest::discover(&self.home, &current_dir)?;
 
         // Installing all tools is split into multiple steps to allow for concurrency:
-        // 1. Trust check - this requires user input and may yield
-        // 2. Installation - skips trust checks to install concurrently
+        // 1. Trust check - requires user input and may yield
+        // 2. Installation - no user input or yielding, we can install concurrently
 
         let all_tools = manifests
             .iter()
@@ -149,7 +153,7 @@ impl ToolStorage {
 
         // TODO: Install in parallel
         for (alias, tool_id) in &all_tools {
-            self.install_exact(tool_id, TrustMode::NoCheck)?;
+            self.install_exact(tool_id)?;
             self.link(alias)?;
         }
 
@@ -157,11 +161,9 @@ impl ToolStorage {
     }
 
     /// Ensure a tool that matches the given spec is installed.
-    fn install_inexact(&self, spec: &ToolSpec, trust: TrustMode) -> anyhow::Result<ToolId> {
+    fn install_inexact(&self, spec: &ToolSpec) -> anyhow::Result<ToolId> {
         let installed_path = self.storage_dir.join("installed.txt");
         let installed = InstalledToolsCache::read(&installed_path)?;
-
-        self.trust_check(spec.name(), trust)?;
 
         log::info!("Installing tool: {}", spec);
 
@@ -230,7 +232,7 @@ impl ToolStorage {
     }
 
     /// Ensure a tool with the given tool ID is installed.
-    fn install_exact(&self, id: &ToolId, trust: TrustMode) -> anyhow::Result<()> {
+    fn install_exact(&self, id: &ToolId) -> anyhow::Result<()> {
         let installed_path = self.storage_dir.join("installed.txt");
         let installed = InstalledToolsCache::read(&installed_path)?;
         let is_installed = installed.tools.contains(id);
@@ -238,8 +240,6 @@ impl ToolStorage {
         if is_installed {
             return Ok(());
         }
-
-        self.trust_check(id.name(), trust)?;
 
         log::info!("Installing tool: {id}");
 
