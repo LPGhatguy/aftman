@@ -118,7 +118,9 @@ impl ToolStorage {
 
             // Copy the executable into a temp directory so that we can replace
             // it even if it's currently running.
-            fs_err::rename(&path, junk_dir.path().join(name))?;
+            fs_err::copy(&path, junk_dir.path().join(name))?;
+
+            // There is no need to remove original file as this line will overwrite it.
             fs_err::copy(&self_path, path)?;
         }
 
