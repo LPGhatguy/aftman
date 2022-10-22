@@ -139,11 +139,39 @@ impl ToolStorage {
         let current_dir = current_dir().context("Failed to get current working directory")?;
         let manifests = Manifest::discover(&self.home, &current_dir)?;
 
-        for manifest in manifests {
-            for (alias, tool_id) in manifest.tools {
-                self.install_exact(&tool_id, trust)?;
-                self.link(&alias)?;
-            }
+        // Installing all tools is split into multiple steps:
+        // 1. Trust check, which requires user input and may yield
+        // 2. Installation of trusted tools, which will be in parallel in the future
+
+        let all_tools: Vec<_> = manifests
+            .iter()
+            .flat_map(|manifest| &manifest.tools)
+            .collect();
+
+        for (_, tool_id) in &all_tools {
+            self.trust_check(tool_id.name(), trust)?;
+        }
+
+        let trusted_tools: Vec<_> = all_tools
+            .iter()
+            .filter(|(_, tool_id)| {
+                matches!(self.trust_status(tool_id.name()), Ok(TrustStatus::Trusted))
+            })
+            .collect();
+
+        for (alias, tool_id) in &trusted_tools {
+            self.install_exact(tool_id, trust)?;
+            self.link(alias)?;
+        }
+
+        if trusted_tools.len() < all_tools.len() {
+            log::warn!(
+                "Installed {} tool{} out of {} ({} failed)",
+                trusted_tools.len(),
+                if trusted_tools.len() != 1 { "s" } else { "" },
+                all_tools.len(),
+                (all_tools.len() - trusted_tools.len()),
+            );
         }
 
         Ok(())
@@ -154,7 +182,7 @@ impl ToolStorage {
         let installed_path = self.storage_dir.join("installed.txt");
         let installed = InstalledToolsCache::read(&installed_path)?;
 
-        self.trust_ensure(spec.name(), trust)?;
+        self.trust_check(spec.name(), trust)?;
 
         log::info!("Installing tool: {}", spec);
 
@@ -234,7 +262,7 @@ impl ToolStorage {
             return Ok(());
         }
 
-        self.trust_ensure(id.name(), trust)?;
+        self.trust_check(id.name(), trust)?;
 
         log::info!("Installing tool: {id}");
 
@@ -319,8 +347,9 @@ impl ToolStorage {
             .collect()
     }
 
-    fn trust_ensure(&self, name: &ToolName, mode: TrustMode) -> anyhow::Result<()> {
-        let status = self.trust_check(name)?;
+    fn trust_check(&self, name: &ToolName, mode: TrustMode) -> anyhow::Result<()> {
+        let status = self.trust_status(name)?;
+
         if status == TrustStatus::NotTrusted {
             if mode == TrustMode::Check {
                 // If the terminal isn't interactive, tell the user that they
@@ -356,7 +385,7 @@ impl ToolStorage {
         Ok(())
     }
 
-    fn trust_check(&self, name: &ToolName) -> anyhow::Result<TrustStatus> {
+    fn trust_status(&self, name: &ToolName) -> anyhow::Result<TrustStatus> {
         let trusted = TrustCache::read(&self.home)?;
         let is_trusted = trusted.tools.contains(name);
         if is_trusted {
