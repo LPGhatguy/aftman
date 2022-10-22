@@ -19,7 +19,7 @@ use crate::tool_id::ToolId;
 use crate::tool_name::ToolName;
 use crate::tool_source::{Asset, GitHubSource, Release};
 use crate::tool_spec::ToolSpec;
-use crate::trust::{TrustCache, TrustMode};
+use crate::trust::{TrustCache, TrustMode, TrustStatus};
 
 pub struct ToolStorage {
     pub storage_dir: PathBuf,
@@ -154,7 +154,7 @@ impl ToolStorage {
         let installed_path = self.storage_dir.join("installed.txt");
         let installed = InstalledToolsCache::read(&installed_path)?;
 
-        self.trust_check(spec.name(), trust)?;
+        self.trust_ensure(spec.name(), trust)?;
 
         log::info!("Installing tool: {}", spec);
 
@@ -234,7 +234,7 @@ impl ToolStorage {
             return Ok(());
         }
 
-        self.trust_check(id.name(), trust)?;
+        self.trust_ensure(id.name(), trust)?;
 
         log::info!("Installing tool: {id}");
 
@@ -319,11 +319,9 @@ impl ToolStorage {
             .collect()
     }
 
-    fn trust_check(&self, name: &ToolName, mode: TrustMode) -> anyhow::Result<()> {
-        let trusted = TrustCache::read(&self.home)?;
-        let is_trusted = trusted.tools.contains(name);
-
-        if !is_trusted {
+    fn trust_ensure(&self, name: &ToolName, mode: TrustMode) -> anyhow::Result<()> {
+        let status = self.trust_check(name)?;
+        if status == TrustStatus::NotTrusted {
             if mode == TrustMode::Check {
                 // If the terminal isn't interactive, tell the user that they
                 // need to open an interactive terminal to trust this tool.
@@ -356,6 +354,16 @@ impl ToolStorage {
         }
 
         Ok(())
+    }
+
+    fn trust_check(&self, name: &ToolName) -> anyhow::Result<TrustStatus> {
+        let trusted = TrustCache::read(&self.home)?;
+        let is_trusted = trusted.tools.contains(name);
+        if is_trusted {
+            Ok(TrustStatus::Trusted)
+        } else {
+            Ok(TrustStatus::NotTrusted)
+        }
     }
 
     fn install_executable(&self, id: &ToolId, mut contents: impl Read) -> anyhow::Result<()> {
