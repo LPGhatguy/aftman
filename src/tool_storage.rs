@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context};
 use fs_err::File;
+use itertools::{Either, Itertools};
 use once_cell::unsync::OnceCell;
 
 use crate::auth::AuthManifest;
@@ -135,43 +136,35 @@ impl ToolStorage {
     }
 
     /// Install all tools from all reachable manifest files.
-    pub fn install_all(&self, trust: TrustMode) -> anyhow::Result<()> {
+    pub fn install_all(&self, trust: TrustMode, skip_untrusted: bool) -> anyhow::Result<()> {
         let current_dir = current_dir().context("Failed to get current working directory")?;
         let manifests = Manifest::discover(&self.home, &current_dir)?;
 
         // Installing all tools is split into multiple steps:
-        // 1. Trust check, which requires user input and may yield
+        // 1. Trust check, which may prompt the user and yield if untrusted
         // 2. Installation of trusted tools, which will be in parallel in the future
+        // 3. Reporting of installation trust errors, unless trust errors are skipped
 
-        let all_tools: Vec<_> = manifests
+        let (trusted_tools, trust_errors): (Vec<_>, Vec<_>) = manifests
             .iter()
             .flat_map(|manifest| &manifest.tools)
-            .collect();
-
-        for (_, tool_id) in &all_tools {
-            self.trust_check(tool_id.name(), trust)?;
-        }
-
-        let trusted_tools: Vec<_> = all_tools
-            .iter()
-            .filter(|(_, tool_id)| {
-                matches!(self.trust_status(tool_id.name()), Ok(TrustStatus::Trusted))
-            })
-            .collect();
+            .partition_map(
+                |(alias, tool_id)| match self.trust_check(tool_id.name(), trust) {
+                    Ok(_) => Either::Left((alias, tool_id)),
+                    Err(e) => Either::Right(e),
+                },
+            );
 
         for (alias, tool_id) in &trusted_tools {
             self.install_exact(tool_id, trust)?;
             self.link(alias)?;
         }
 
-        if trusted_tools.len() < all_tools.len() {
-            log::warn!(
-                "Installed {} tool{} out of {} ({} failed)",
-                trusted_tools.len(),
-                if trusted_tools.len() != 1 { "s" } else { "" },
-                all_tools.len(),
-                (all_tools.len() - trusted_tools.len()),
-            );
+        if !trust_errors.is_empty() && !skip_untrusted {
+            bail!(
+                "Installation trust check failed for the following tools:\n{}",
+                trust_errors.iter().map(|e| format!("    {e}")).join("\n")
+            )
         }
 
         Ok(())
@@ -371,11 +364,10 @@ impl ToolStorage {
                     .interact_opt()?;
 
                 if let Some(false) | None = proceed {
-                    eprintln!(
-                        "Skipping installation of {} and exiting with an error.",
-                        name
+                    bail!(
+                        "Tool {name} is not trusted. \
+                         Run `aftman trust {name}` in your terminal to trust it.",
                     );
-                    std::process::exit(1);
                 }
             }
 
