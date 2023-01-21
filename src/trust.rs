@@ -13,6 +13,12 @@ pub enum TrustMode {
     NoCheck,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TrustStatus {
+    Trusted,
+    NotTrusted,
+}
+
 #[derive(Debug)]
 pub struct TrustCache {
     pub tools: BTreeSet<ToolName>,

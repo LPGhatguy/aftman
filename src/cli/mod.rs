@@ -155,6 +155,9 @@ pub struct InstallSubcommand {
     /// recommended to only run this on CI machines.
     #[clap(long)]
     pub no_trust_check: bool,
+    /// Skip / don't error if a tool was not trusted during install.
+    #[clap(long)]
+    pub skip_untrusted: bool,
 }
 
 impl InstallSubcommand {
@@ -165,7 +168,7 @@ impl InstallSubcommand {
             TrustMode::Check
         };
 
-        tools.install_all(trust)
+        tools.install_all(trust, self.skip_untrusted)
     }
 }
 

@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context};
 use fs_err::File;
+use itertools::{Either, Itertools};
 use once_cell::unsync::OnceCell;
 
 use crate::auth::AuthManifest;
@@ -19,7 +20,7 @@ use crate::tool_id::ToolId;
 use crate::tool_name::ToolName;
 use crate::tool_source::{Asset, GitHubSource, Release};
 use crate::tool_spec::ToolSpec;
-use crate::trust::{TrustCache, TrustMode};
+use crate::trust::{TrustCache, TrustMode, TrustStatus};
 
 pub struct ToolStorage {
     pub storage_dir: PathBuf,
@@ -135,15 +136,35 @@ impl ToolStorage {
     }
 
     /// Install all tools from all reachable manifest files.
-    pub fn install_all(&self, trust: TrustMode) -> anyhow::Result<()> {
+    pub fn install_all(&self, trust: TrustMode, skip_untrusted: bool) -> anyhow::Result<()> {
         let current_dir = current_dir().context("Failed to get current working directory")?;
         let manifests = Manifest::discover(&self.home, &current_dir)?;
 
-        for manifest in manifests {
-            for (alias, tool_id) in manifest.tools {
-                self.install_exact(&tool_id, trust)?;
-                self.link(&alias)?;
-            }
+        // Installing all tools is split into multiple steps:
+        // 1. Trust check, which may prompt the user and yield if untrusted
+        // 2. Installation of trusted tools, which will be in parallel in the future
+        // 3. Reporting of installation trust errors, unless trust errors are skipped
+
+        let (trusted_tools, trust_errors): (Vec<_>, Vec<_>) = manifests
+            .iter()
+            .flat_map(|manifest| &manifest.tools)
+            .partition_map(
+                |(alias, tool_id)| match self.trust_check(tool_id.name(), trust) {
+                    Ok(_) => Either::Left((alias, tool_id)),
+                    Err(e) => Either::Right(e),
+                },
+            );
+
+        for (alias, tool_id) in &trusted_tools {
+            self.install_exact(tool_id, trust)?;
+            self.link(alias)?;
+        }
+
+        if !trust_errors.is_empty() && !skip_untrusted {
+            bail!(
+                "Installation trust check failed for the following tools:\n{}",
+                trust_errors.iter().map(|e| format!("    {e}")).join("\n")
+            )
         }
 
         Ok(())
@@ -320,10 +341,9 @@ impl ToolStorage {
     }
 
     fn trust_check(&self, name: &ToolName, mode: TrustMode) -> anyhow::Result<()> {
-        let trusted = TrustCache::read(&self.home)?;
-        let is_trusted = trusted.tools.contains(name);
+        let status = self.trust_status(name)?;
 
-        if !is_trusted {
+        if status == TrustStatus::NotTrusted {
             if mode == TrustMode::Check {
                 // If the terminal isn't interactive, tell the user that they
                 // need to open an interactive terminal to trust this tool.
@@ -344,11 +364,10 @@ impl ToolStorage {
                     .interact_opt()?;
 
                 if let Some(false) | None = proceed {
-                    eprintln!(
-                        "Skipping installation of {} and exiting with an error.",
-                        name
+                    bail!(
+                        "Tool {name} is not trusted. \
+                         Run `aftman trust {name}` in your terminal to trust it.",
                     );
-                    std::process::exit(1);
                 }
             }
 
@@ -356,6 +375,16 @@ impl ToolStorage {
         }
 
         Ok(())
+    }
+
+    fn trust_status(&self, name: &ToolName) -> anyhow::Result<TrustStatus> {
+        let trusted = TrustCache::read(&self.home)?;
+        let is_trusted = trusted.tools.contains(name);
+        if is_trusted {
+            Ok(TrustStatus::Trusted)
+        } else {
+            Ok(TrustStatus::NotTrusted)
+        }
     }
 
     fn install_executable(&self, id: &ToolId, mut contents: impl Read) -> anyhow::Result<()> {
