@@ -55,11 +55,7 @@ fn append_line_if_not_present(path: &Path, line: &str, create: bool) -> anyhow::
         _ => false,
     };
 
-    let mut file = match OpenOptions::new()
-        .create_new(create)
-        .append(true)
-        .open(path)
-    {
+    let mut file = match OpenOptions::new().create(create).append(true).open(path) {
         Ok(file) => file,
         Err(err) => {
             if err.kind() != io::ErrorKind::NotFound {
