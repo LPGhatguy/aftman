@@ -97,12 +97,19 @@ impl ToolStorage {
         // ends up replaced by this process, we'll still have the file that
         // we're supposed to be copying.
         log::debug!("Copying own executable into temp dir");
-        let source_dir = tempfile::tempdir()?;
-        let source_path = source_dir.path().join(self_name);
+
+        // Since renaming a file is not supported between multiple filesystems,
+        // We make a temp directory inside of the home directory.
+        // This is necessary on Unix as most partitions use a seperate filesystem for /tmp.
+       
+        let source_dir = &self.home.path().join("tmp");
+        fs_err::create_dir_all(source_dir)?;
+
+        let source_path = source_dir.join(self_name);
         fs_err::copy(&self_path, &source_path)?;
         let self_path = source_path;
 
-        let junk_dir = tempfile::tempdir()?;
+        let junk_dir = source_dir;
         let aftman_name = format!("aftman{EXE_SUFFIX}");
         let mut found_aftman = false;
 
@@ -119,7 +126,7 @@ impl ToolStorage {
 
             // Copy the executable into a temp directory so that we can replace
             // it even if it's currently running.
-            fs_err::rename(&path, junk_dir.path().join(name))?;
+            fs_err::rename(&path, junk_dir.join(name))?;
             fs_err::copy(&self_path, path)?;
         }
 
@@ -131,6 +138,9 @@ impl ToolStorage {
         }
 
         log::info!("Updated Aftman binaries successfully!");
+
+        // Since the /tmp file is no longer cleaned up automatically, we have to do it manually.
+        fs_err::remove_dir_all(junk_dir)?;
 
         Ok(())
     }
