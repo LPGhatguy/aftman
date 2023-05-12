@@ -26,6 +26,14 @@ Aftman supports:
 - Linux (x86, x86-64)
 
 ## Installation
+### Method 1: Homebrew
+You can install Aftman using [Homebrew](https://brew.sh/):
+
+```bash
+brew install aftman
+```
+
+### Method 2: Pre-built Binaries
 You can install Aftman by downloading a pre-built binary for your platform from Aftman's [GitHub Releases Page](https://github.com/LPGhatguy/aftman/releases).
 
 Once you have the release unzipped, run:
