@@ -77,7 +77,11 @@ fn current_exe_name() -> anyhow::Result<String> {
         .and_then(|name| name.to_str())
         .ok_or_else(|| format_err!("OS gave a funny result when asking for executable name"))?;
 
-    exe_name = exe_name.strip_suffix(EXE_SUFFIX).unwrap_or(exe_name);
+    exe_name = exe_name
+        .strip_suffix(EXE_SUFFIX)
+        // See https://github.com/LPGhatguy/aftman/issues/54: handle windows file extension case-insensitivity
+        .or_else(|| exe_name.strip_suffix(&EXE_SUFFIX.to_uppercase()))
+        .unwrap_or(exe_name);
 
     Ok(exe_name.to_owned())
 }
