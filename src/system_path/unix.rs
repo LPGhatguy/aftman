@@ -36,7 +36,7 @@ pub fn add(home: &Home) -> anyhow::Result<bool> {
 
         let shell = env::var("SHELL");
         let is_zsh = matches!(shell, Ok(sh) if sh.contains("zsh"));
-        let path = home.join(".zshenv");
+        let path = home.join(".zshrc");
 
         // If the user is currently running zsh, create .zshenv if it doesn't
         // exist. Otherwise, we'll only append to it if it already exists.
