@@ -1,7 +1,7 @@
 [package]
 name = "aftman"
 description = "Aftman is a command line toolchain manager"
-version = "0.2.7"
+version = "0.2.8"
 rust-version = "1.58.0"
 license = "MIT"
 edition = "2021"

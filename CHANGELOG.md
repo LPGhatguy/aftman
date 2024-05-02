@@ -2,6 +2,19 @@
 
 ## Unreleased Changes
 
+## [0.2.8] (May 2, 2024)
+* Improved trust check logic and added `--skip-untrusted` flag ([#38])
+* Fixed macOS AArch64 builds actually being x86-64 ([#34])
+* Fixed environment configuration on zsh under some scenarios ([#45])
+* Fixed handling of uppercase `.EXE` suffix binaries on Windows ([#57])
+* Minor version bumps to various dependencies
+
+[#34]: https://github.com/LPGhatguy/aftman/pull/34
+[#38]: https://github.com/LPGhatguy/aftman/pull/38
+[#45]: https://github.com/LPGhatguy/aftman/pull/45
+[#57]: https://github.com/LPGhatguy/aftman/pull/57
+[0.2.8]: https://github.com/LPGhatguy/aftman/releases/tag/v0.2.8
+
 ## [0.2.7] (September 6, 2022)
 * Added support for authenticating with GitHub. ([#18])
 	* After updating Aftman, edit `~/.aftman/auth.toml` to add a [Personal Access Token][pat].
