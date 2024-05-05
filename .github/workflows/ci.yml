@@ -3,11 +3,11 @@ name: CI
 on:
   push:
     branches:
-    - main
+      - main
 
   pull_request:
     branches:
-    - main
+      - main
 
 jobs:
   build:
@@ -17,40 +17,40 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust_version: [stable, 1.60.0]
+        rust_version: [stable, 1.65.0]
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: ${{ matrix.rust_version }}
-        override: true
-        profile: minimal
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust_version }}
+          override: true
+          profile: minimal
 
-    - name: Build
-      run: cargo build --locked --verbose
+      - name: Build
+        run: cargo build --locked --verbose
 
-    - name: Test
-      run: cargo test --locked --verbose
+      - name: Test
+        run: cargo test --locked --verbose
 
   lint:
     name: Rustfmt and Clippy
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
-        components: rustfmt, clippy
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
 
-    - name: Rustfmt
-      run: cargo fmt -- --check
+      - name: Rustfmt
+        run: cargo fmt -- --check
 
-    - name: Clippy
-      run: cargo clippy
+      - name: Clippy
+        run: cargo clippy
