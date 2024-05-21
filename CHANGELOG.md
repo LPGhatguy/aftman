@@ -2,6 +2,14 @@
 
 ## Unreleased Changes
 
+## [0.3.0] (May 11, 2024)
+* Switched from OpenSSL to rustls, which should fix some dynamic dependency issues on certain distributions. ([#62])
+* Added support for Linux AArch64 builds ([#64])
+
+[#62]: https://github.com/LPGhatguy/aftman/pull/62
+[#64]: https://github.com/LPGhatguy/aftman/pull/64
+[0.3.0]: https://github.com/LPGhatguy/aftman/releases/tag/v0.3.0
+
 ## [0.2.8] (May 2, 2024)
 * Improved trust check logic and added `--skip-untrusted` flag ([#38])
 * Fixed macOS AArch64 builds actually being x86-64 ([#34])
