@@ -23,7 +23,7 @@ Aftman supports:
 
 - Windows (x86, x86-64)
 - macOS (x86-64, AArch64)
-- Linux (x86, x86-64)
+- Linux (x86, x86-64, AArch64)
 
 ## Installation
 You can install Aftman by downloading a pre-built binary for your platform from Aftman's [GitHub Releases Page](https://github.com/LPGhatguy/aftman/releases).
