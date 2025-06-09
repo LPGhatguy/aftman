@@ -3,19 +3,19 @@ Aftman is a toolchain manager. It enables installing project-specific command li
 
 ```bash
 $ rojo --version
-Rojo 6.2.0
+Rojo 7.5.1
 
 $ cat ~/.aftman/aftman.toml
 [tools]
-rojo = "rojo-rbx/rojo@6.2.0"
+rojo = "rojo-rbx/rojo@7.5.1"
 
-$ cd uses-rojo-7
+$ cd uses-rojo-6
 $ rojo --version
-Rojo 7.1.0
+Rojo 6.2.0
 
 $ cat aftman.toml
 [tools]
-rojo = "rojo-rbx/rojo@7.1.0" 
+rojo = "rojo-rbx/rojo@6.2.0" 
 ```
 
 ## Supported Platforms
@@ -49,7 +49,7 @@ To add a new tool, you can follow the instructions in the file, or run
 aftman add rojo-rbx/rojo
 
 # install a specific version
-aftman add rojo-rbx/rojo@6.2.0
+aftman add rojo-rbx/rojo@7.5.1
 
 # install with a different binary name
 aftman add BurntSushi/ripgrep rg
@@ -113,10 +113,10 @@ aftman add rojo-rbx/rojo
 aftman add --global rojo-rbx/rojo
 
 # Install a specific version of Rojo locally
-aftman add rojo-rbx/rojo@6.2.0
+aftman add rojo-rbx/rojo@7.5.1
 
 # Install Rojo with a different binary name
-aftman add rojo-rbx/rojo@6.2.0 rojo6
+aftman add rojo-rbx/rojo@7.5.1 rojo7
 ```
 
 ### `aftman install`
