@@ -1,5 +1,14 @@
+<h1 align="center">⚠️ Aftman is no longer maintained! ⚠️</h1>
+
+## I recommend using [mise-en-place](https://mise.jdx.dev) as a replacement. It's a fantastic tool that does everything Aftman does and more!
+
+---
+
 # Aftman
 Aftman is a toolchain manager. It enables installing project-specific command line tools and switching between them seamlessly.
+
+> [!NOTE]
+> This is a test note
 
 ```bash
 $ rojo --version
