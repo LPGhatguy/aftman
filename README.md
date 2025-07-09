@@ -1,6 +1,6 @@
 <h1 align="center">⚠️ Aftman is no longer maintained! ⚠️</h1>
 
-## I recommend using [mise-en-place](https://mise.jdx.dev) as a replacement. It's a fantastic tool that does everything Aftman does and more!
+## I recommend using [mise-en-place](https://mise.jdx.dev) as a replacement. It's a fantastic tool that does everything Aftman does and more! You can learn more [in this issue I've filed](https://github.com/LPGhatguy/aftman/issues/75).
 
 ---
 
