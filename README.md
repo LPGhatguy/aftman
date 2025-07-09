@@ -7,9 +7,6 @@
 # Aftman
 Aftman is a toolchain manager. It enables installing project-specific command line tools and switching between them seamlessly.
 
-> [!NOTE]
-> This is a test note
-
 ```bash
 $ rojo --version
 Rojo 7.5.1
